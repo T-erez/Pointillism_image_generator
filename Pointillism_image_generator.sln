@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pointillism_image_generator", "Pointillism_image_generator.csproj", "{7B3B7822-D5F0-46C9-B333-4201A7A1E52B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7B3B7822-D5F0-46C9-B333-4201A7A1E52B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B3B7822-D5F0-46C9-B333-4201A7A1E52B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B3B7822-D5F0-46C9-B333-4201A7A1E52B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B3B7822-D5F0-46C9-B333-4201A7A1E52B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1F637899-9B27-4ED0-9518-2EE29D67105F}
+	EndGlobalSection
+EndGlobal
