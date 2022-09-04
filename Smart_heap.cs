@@ -107,7 +107,7 @@ namespace Pointillism_image_generator
     public class SmartHeap
     {
         /// <summary>
-        /// Smart heap includes a max heap and an array which helps to change nodes in heap faster.
+        /// Smart heap includes a max heap and a dictionary which helps to change nodes in heap faster.
         /// </summary>
        
         public int capacity;
