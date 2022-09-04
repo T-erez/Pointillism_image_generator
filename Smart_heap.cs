@@ -5,6 +5,10 @@ namespace Pointillism_image_generator
 {
     public class Node : IComparable<Node>
     {
+        /// <summary>
+        /// Node represents a pattern and its improvement that define, which pattern is better.
+        /// </summary>
+        
         public readonly Pattern pattern;
         public int improvement;
         public readonly int backgroundContribution;
@@ -102,6 +106,10 @@ namespace Pointillism_image_generator
 
     public class SmartHeap
     {
+        /// <summary>
+        /// Smart heap includes a max heap and an array which helps to change nodes in heap faster.
+        /// </summary>
+       
         public int capacity;
         public int count;
         Node[] heap;
