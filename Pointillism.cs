@@ -107,7 +107,7 @@ namespace Pointillism_image_generator
 
             PatternsToAdd = new SmartHeap(originalImage.Width * originalImage.Height / (PixelMultiple * PixelMultiple) + originalImage.Width + originalImage.Height);
             Bitmap whiteCanvas = new Bitmap(WindowSize, WindowSize, PixelFormat.Format24bppRgb);
-            using (Graphics g = Graphics.FromImage(WindowSizeBitmap)) { g.Clear(Color.White); }
+            using (Graphics g = Graphics.FromImage(whiteCanvas)) { g.Clear(Color.White); }
             for (int j = HalfWindowSize; j < originalImage.Height + HalfWindowSize; j += PixelMultiple)
             {
                 for (int i = HalfWindowSize; i < originalImage.Width + HalfWindowSize; i += PixelMultiple)
