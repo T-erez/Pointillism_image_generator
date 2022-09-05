@@ -25,7 +25,13 @@ For these purposes I’m using max heap data structure to quickly find a pattern
 *in this implementation, for only every 16th index best pattern is found – it decreases precision but also memory requirements
 
 # Warning
-Program is very slow. Experimental time needed to paste 1000 number of patterns (7 pixels in size) is around 50 seconds. High resolution images are not recommended as an input picture, the details still will not be preserved.
+Program is very slow. Experimental speed of pasting patterns is:
+
+* for a pattern 7 pixels in size: 400+ patterns per minute
+* for a pattern 11 pixels in size: around 150 patterns per minute
+* for a pattern 13 pixels in size: around 45 patterns per minute. 
+
+High resolution images are not recommended as an input picture, the details still will not be preserved.
 
 Larger images means longer intitalization. Bigger size of patterns causes longer image generation.
 # GUI
