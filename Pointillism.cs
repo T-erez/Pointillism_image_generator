@@ -12,8 +12,9 @@ namespace Pointillism_image_generator
         /// int xIndex:  x-coordinate of the centre of the pattern in the generated image
         /// int yIndex:  y-coordinate of the centre of the pattern in the generated image
         /// int colorARGB:  color of pattern in ARGB
-        /// int angle:  angle of rotation about the centre of pattern
+        /// int angle:  angle of rotation about the centre
         /// </summary>
+        
         public int xIndex;
         public int yIndex;
         public int colorARGB;
@@ -34,11 +35,12 @@ namespace Pointillism_image_generator
         /// 
         /// int min:  the lowest intestity
         /// int max:  the highest intensity
-        /// int firstHalfMax:  maximal value in the first half of intensity range
-        /// int secondHalfMin:  minimal value in the second half of intensity range
-        /// int error1:  error of pattern with color equal to firstHalfMax
-        /// int error2:  error of pattern with color equal to secondHalfMin 
+        /// int firstHalfMax:  the maximum value in the first half of the intensity range
+        /// int secondHalfMin:  the minimum value in the second half of the intensity range
+        /// int error1:  error of a pattern with color equal to firstHalfMax
+        /// int error2:  error of a pattern with color equal to secondHalfMin 
         /// </summary>
+        
         public int min;
         public int max;
         public int firstHalfMax;
@@ -67,9 +69,10 @@ namespace Pointillism_image_generator
         /// int NumberOfPatterns:  number of patterns pasted to OutputImage
         /// int PatternSize:  size of square patterns
         /// int WindowSize: size where fits pattern with any rotation about centre
+        /// int HalfWindowSize: WindowSize / 2
         /// SmartHeap PatternsToAdd:  heap with patterns to add 
         /// int PixelMultiple:  defines pixels on which to generate a pattern
-        /// Bitmap AffectedRegionBitmap:  bitmap of maximal size that is affected by pasting a pattern 
+        /// Bitmap WindowSizeBitmap:  bitmap of maximum size that is affected by pasting a pattern 
         /// </summary>
 
         private Bitmap OriginalImage;
@@ -78,38 +81,36 @@ namespace Pointillism_image_generator
 
         private int PatternSize;
         private int WindowSize;
-        private int AffectedRegionSize;
-        private int HalfAffectedRegionSize;
+        private int HalfWindowSize;
         private SmartHeap PatternsToAdd;
 
         static int PixelMultiple = 4;
 
-        private Bitmap AffectedRegionBitmap;
+        private Bitmap WindowSizeBitmap;
 
         public void Initialize(Image originalImage, int patternSize)
         {
             PatternSize = patternSize;
             WindowSize = PatternSizeToWindowSize(PatternSize);
-            AffectedRegionSize = WindowSize ;
-            HalfAffectedRegionSize = AffectedRegionSize / 2;
+            HalfWindowSize = WindowSize / 2;
 
-            AffectedRegionBitmap = new Bitmap(AffectedRegionSize, AffectedRegionSize);
+            WindowSizeBitmap = new Bitmap(WindowSize, WindowSize);
 
-            OriginalImage = new Bitmap(originalImage.Width + 2 * HalfAffectedRegionSize, originalImage.Height + 2 * HalfAffectedRegionSize, PixelFormat.Format24bppRgb);
+            OriginalImage = new Bitmap(originalImage.Width + 2 * HalfWindowSize, originalImage.Height + 2 * HalfWindowSize, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(OriginalImage))
             {
                 g.Clear(Color.White);
-                g.DrawImage(originalImage, HalfAffectedRegionSize, HalfAffectedRegionSize, originalImage.Width, originalImage.Height);
+                g.DrawImage(originalImage, HalfWindowSize, HalfWindowSize, originalImage.Width, originalImage.Height);
             }    // padding will stay white
             OutputImage = new Bitmap(OriginalImage.Width, OriginalImage.Height, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(OutputImage)) { g.Clear(Color.White); }
 
             PatternsToAdd = new SmartHeap(originalImage.Width * originalImage.Height / (PixelMultiple * PixelMultiple) + originalImage.Width + originalImage.Height);
-            Bitmap whiteCanvas = new Bitmap(AffectedRegionSize, AffectedRegionSize, PixelFormat.Format24bppRgb);
-            using (Graphics g = Graphics.FromImage(AffectedRegionBitmap)) { g.Clear(Color.White); }
-            for (int j = HalfAffectedRegionSize; j < originalImage.Height + HalfAffectedRegionSize; j += PixelMultiple)
+            Bitmap whiteCanvas = new Bitmap(WindowSize, WindowSize, PixelFormat.Format24bppRgb);
+            using (Graphics g = Graphics.FromImage(WindowSizeBitmap)) { g.Clear(Color.White); }
+            for (int j = HalfWindowSize; j < originalImage.Height + HalfWindowSize; j += PixelMultiple)
             {
-                for (int i = HalfAffectedRegionSize; i < originalImage.Width + HalfAffectedRegionSize; i += PixelMultiple)
+                for (int i = HalfWindowSize; i < originalImage.Width + HalfWindowSize; i += PixelMultiple)
                 {
                     (int redError, int greenError, int blueError) = GetError(whiteCanvas, i, j);
                     int error0 = redError + greenError + blueError;
@@ -127,10 +128,10 @@ namespace Pointillism_image_generator
         public Bitmap GetOutputImage()
         {
             return OutputImage.Clone(new Rectangle(
-                HalfAffectedRegionSize,
-                HalfAffectedRegionSize,
-                OriginalImage.Width - AffectedRegionSize,
-                OriginalImage.Height - AffectedRegionSize),
+                HalfWindowSize,
+                HalfWindowSize,
+                OriginalImage.Width - WindowSize,
+                OriginalImage.Height - WindowSize),
                 PixelFormat.Format24bppRgb);
         }
 
@@ -157,7 +158,7 @@ namespace Pointillism_image_generator
 
         private bool AddBestOfBestPatterns()
         {
-            // Get a pattern with best improvement and add it to an output image. 
+            // Get a pattern with the best improvement and add it to an output image. 
 
             Node node = PatternsToAdd.GetMax();
             if (node.improvement <= 0)
@@ -173,14 +174,14 @@ namespace Pointillism_image_generator
 
         private void UpdatePatterns(int xIndex, int yIndex)
         {
-            (int iStart, int iEnd) = GetIndexesOfRegion(xIndex, AffectedRegionSize, true);
-            (int jStart, int jEnd) = GetIndexesOfRegion(yIndex, AffectedRegionSize, false);
+            (int iStart, int iEnd) = GetIndexesOfRegion(xIndex, WindowSize, true);
+            (int jStart, int jEnd) = GetIndexesOfRegion(yIndex, WindowSize, false);
 
             for (int j = jStart; j < jEnd; j++)
             {
                 for (int i = iStart; i < iEnd; i++)
                 {
-                    if ((i - HalfAffectedRegionSize) % PixelMultiple == 0 && (j - HalfAffectedRegionSize) % PixelMultiple == 0)
+                    if ((i - HalfWindowSize) % PixelMultiple == 0 && (j - HalfWindowSize) % PixelMultiple == 0)
                     {
                         PatternsToAdd.Change(GetBestPatternOnIndex(i, j));
                     }
@@ -199,12 +200,12 @@ namespace Pointillism_image_generator
 
             for (int angle = 0; angle < 90; angle += 30)
             {
-                AffectedRegionBitmap = OutputImage.Clone(
-                    new Rectangle(xIndex - HalfAffectedRegionSize, yIndex - HalfAffectedRegionSize, AffectedRegionSize, AffectedRegionSize),
+                WindowSizeBitmap = OutputImage.Clone(
+                    new Rectangle(xIndex - HalfWindowSize, yIndex - HalfWindowSize, WindowSize, WindowSize),
                     OutputImage.PixelFormat);
                 pattern.angle = angle;
 
-                (int color, int error) = GetBestColorOfPattern(AffectedRegionBitmap, pattern);
+                (int color, int error) = GetBestColorOfPattern(WindowSizeBitmap, pattern);
 
                 if (error < smallestError)
                 {
@@ -218,15 +219,15 @@ namespace Pointillism_image_generator
             return new Node(pattern, 0, 0, smallestError);
         }
 
-        private (int, int) GetBestColorOfPattern(Bitmap affectedRegion, Pattern pattern1)
+        private (int, int) GetBestColorOfPattern(Bitmap windowSizeBmp, Pattern pattern1)
         {
             // A binary search performed seperately on each rgb channel.
 
             int x = pattern1.xIndex;
             int y = pattern1.yIndex;
 
-            pattern1.xIndex = HalfAffectedRegionSize;
-            pattern1.yIndex = HalfAffectedRegionSize;
+            pattern1.xIndex = HalfWindowSize;
+            pattern1.yIndex = HalfWindowSize;
             Pattern pattern2 = pattern1;
 
             RGBchannel[] rgb = new RGBchannel[] { new RGBchannel(0, 255), new RGBchannel(0, 255), new RGBchannel(0, 255) };
@@ -242,8 +243,8 @@ namespace Pointillism_image_generator
                 pattern1.colorARGB = GenerateColorARGB(rgb[0].firstHalfMax, rgb[1].firstHalfMax, rgb[2].firstHalfMax);
                 pattern2.colorARGB = GenerateColorARGB(rgb[0].secondHalfMin, rgb[1].secondHalfMin, rgb[2].secondHalfMin);
 
-                (rgb[0].error1, rgb[1].error1, rgb[2].error1) = GetError(AddPattern(affectedRegion, pattern1), x, y);
-                (rgb[0].error2, rgb[1].error2, rgb[2].error2) = GetError(AddPattern(affectedRegion, pattern2), x, y);
+                (rgb[0].error1, rgb[1].error1, rgb[2].error1) = GetError(AddPattern(windowSizeBmp, pattern1), x, y);
+                (rgb[0].error2, rgb[1].error2, rgb[2].error2) = GetError(AddPattern(windowSizeBmp, pattern2), x, y);
 
                 for (int i = 0; i < 3; i++)
                 {
@@ -287,20 +288,21 @@ namespace Pointillism_image_generator
             return 255 << 24 | red << 16 | green << 8 | blue;
         }
 
-        private (int, int, int) GetError(Bitmap affectedRegion, int x, int y)
+        private (int, int, int) GetError(Bitmap windowSizeBmp, int x, int y)
         {
-            // Bitmap is an affected region with a new pattern. The coordinates of a pattern in the generated image are (x, y).
+            // Bitmap is a window size region of the output image with a new pattern.
+            // The coordinates of a pattern in the output image are (x, y).
 
             int redError = 0;
             int greenError = 0;
             int blueError = 0;
 
-            for (int j = y - HalfAffectedRegionSize; j < y + HalfAffectedRegionSize; j++)
+            for (int j = y - HalfWindowSize; j < y + HalfWindowSize; j++)
             {
-                for (int i = x - HalfAffectedRegionSize; i < x + HalfAffectedRegionSize; i++)
+                for (int i = x - HalfWindowSize; i < x + HalfWindowSize; i++)
                 {
                     Color originalPixel = OriginalImage.GetPixel(i, j);
-                    Color pixel2 = affectedRegion.GetPixel(i - x + HalfAffectedRegionSize, j - y + HalfAffectedRegionSize);
+                    Color pixel2 = windowSizeBmp.GetPixel(i - x + HalfWindowSize, j - y + HalfWindowSize);
                     redError += Math.Abs(originalPixel.R - pixel2.R);
                     greenError += Math.Abs(originalPixel.G - pixel2.G);
                     blueError += Math.Abs(originalPixel.B - pixel2.B);
@@ -312,13 +314,13 @@ namespace Pointillism_image_generator
 
         private (int, int) GetIndexesOfRegion(int index, int region, bool xAxis)
         {
-            // Returns indexes of region, that do not overlap with side padding.
+            // Returns the region indexes that do not overlap the side padding.
 
             int start = index - region / 2;
             int end = start + region;
-            if (start <= HalfAffectedRegionSize)
+            if (start <= HalfWindowSize)
             {
-                return (HalfAffectedRegionSize, end);
+                return (HalfWindowSize, end);
             }
             else
             {
@@ -327,9 +329,9 @@ namespace Pointillism_image_generator
                 {
                     size = OriginalImage.Width;
                 }
-                if (end >= size - HalfAffectedRegionSize)
+                if (end >= size - HalfWindowSize)
                 {
-                    return (start, size - HalfAffectedRegionSize);
+                    return (start, size - HalfWindowSize);
                 }
                 return (start, end);
             }
