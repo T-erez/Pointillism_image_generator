@@ -56,6 +56,8 @@ namespace Pointillism_image_generator
                 }
             }
             btnStart.Enabled = true;
+            checkBoxProgress.Enabled = true;
+            btnAdd.Enabled = false;
         }
 
         private void btnSave_Click(object sender, EventArgs e)
