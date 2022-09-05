@@ -312,7 +312,7 @@ namespace Pointillism_image_generator
 
         private (int, int) GetIndexesOfRegion(int index, int region, bool xAxis)
         {
-            // Returns indexes of region, that do not overlap to side padding.
+            // Returns indexes of region, that do not overlap with side padding.
 
             int start = index - region / 2;
             int end = start + region;
