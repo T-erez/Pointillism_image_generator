@@ -6,9 +6,13 @@ namespace Pointillism_image_generator
     public class Node : IComparable<Node>
     {
         /// <summary>
-        /// Node represents a pattern and its improvement that define, which pattern is better.
+        /// Node represents a pattern and its improvement that define, which pattern is better. 
+        /// The pattern error must be stored to calculate the improvement.
+        /// 
+        /// int backgroundContribution:  a number of background pixels, that are overlapped by the pattern,
+        ///         this value is not used in other parts of the program, but could be used to cover the background first
         /// </summary>
-        
+
         public readonly Pattern pattern;
         public int improvement;
         public readonly int backgroundContribution;
