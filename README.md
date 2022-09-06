@@ -26,13 +26,13 @@ For these purposes I’m using max heap data structure to quickly find a pattern
 
 # Decomposition
 
-Class ``Pattern`` represents a pattern to be added to the generated image. Patern uniqueness is determined by the characteristics of color, angle and location on the generated image. 
+Structure ``Pattern`` represents a pattern to be added to the generated image. Patern uniqueness is determined by the characteristics of color, angle and location on the generated image. 
 
 Class ``Node`` holds pattern with its error, improvement value and background contribution. Background contribution is a number of background pixels covered by pattern. The other parts of program does not take advantage of background contribution variable, but it could be used for covering background pixels first, so that background does not peak out from the image. Class supports comparing Nodes with each other. Node with larger background contribution is always larger. When the background contribution is equal, Node with larger improvement value is larger.
 
 For storing Nodes, there is a class ``SmartHeap``. It consists of max heap with Nodes and dictionary to find Nodes in heap quickly. Methods included are: ``Add()`` to add new element to heap, ``GetMax()`` to get the largest Node, ``Change()`` to change a Node in heap.
 
-And the most important class is ``Pointillism`` which generates a pointillistic image. The initialization is done by ``Initialize()`` method. ``GeneratePointillismImage()`` adds one pattern to the generated image. To get the generated image use ``GetOutputImage()``.
+The most important class is ``Pointillism`` which generates a pointillistic image. The initialization is done by ``Initialize()`` method. ``GeneratePointillismImage()`` adds one pattern to the generated image. To get the generated image use ``GetOutputImage()``.
 
 
 # GUI
