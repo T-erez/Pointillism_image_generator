@@ -128,7 +128,7 @@ namespace Pointillism_image_generator
         /// Add the best possible pattern to the output image.
         /// </summary>
         /// <returns>If exists a pattern which improves the output image.</returns>
-        public bool GeneratePointilismImage()
+        public bool GeneratePointillismImage()
         {
             return AddBestOfBestPatterns();
         }

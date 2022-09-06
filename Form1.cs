@@ -113,7 +113,7 @@ namespace Pointillism_image_generator
             
             for (int i = 0; i < patterns; i++)
             {
-                if (!pointillism.GeneratePointilismImage())
+                if (!pointillism.GeneratePointillismImage())
                 {
                     return;
                 }
