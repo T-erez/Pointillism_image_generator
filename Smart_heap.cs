@@ -114,8 +114,8 @@ namespace Pointillism_image_generator
         /// Smart heap includes a max heap and a dictionary which helps to change nodes in heap faster.
         /// </summary>
        
-        public int capacity;
-        public int count;
+        private int capacity;
+        private int count;
         Node[] heap;
         Dictionary<(int, int), int> heapIndexes;
 
