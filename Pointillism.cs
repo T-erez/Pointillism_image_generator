@@ -4,21 +4,19 @@ using System.Drawing.Imaging;
 
 namespace Pointillism_image_generator
 {
+    /// <summary>Structure for patterns, that will be pasted in the generated image. Patterns are squares.</summary>
     public struct Pattern
     {
-        /// <summary>
-        /// Structure for patterns. Patterns are squares.
-        /// 
-        /// int xIndex:  x-coordinate of the centre of the pattern in the generated image
-        /// int yIndex:  y-coordinate of the centre of the pattern in the generated image
-        /// int colorARGB:  color of pattern in ARGB
-        /// int angle:  angle of rotation about the centre
-        /// </summary>
-        
         public int xIndex;
         public int yIndex;
         public int colorARGB;
         public int angle;
+
+        /// <summary>Initialize pattern properties</summary>
+        /// <param name="xIndex">x-coordinate of the centre of the pattern in the generated image</param>
+        /// <param name="yIndex">y-coordinate of the centre of the pattern in the generated image</param>
+        /// <param name="color">color of pattern in ARGB</param>
+        /// <param name="angle">angle of rotation about the centre</param>
         public Pattern(int xIndex, int yIndex, int color, int angle)
         {
             this.xIndex = xIndex;
@@ -28,19 +26,9 @@ namespace Pointillism_image_generator
         }
     }
 
+    /// <summary>RGBchannel structure represents one rgb channel and contains values to find the best color for a pattern.</summary>
     public struct RGBchannel
     {
-        /// <summary>
-        /// RGBchannel structure represents one rgb channel and contains values to find the best color for a pattern.
-        /// 
-        /// int min:  the lowest intestity
-        /// int max:  the highest intensity
-        /// int firstHalfMax:  the maximum value in the first half of the intensity range
-        /// int secondHalfMin:  the minimum value in the second half of the intensity range
-        /// int error1:  error of a pattern with color equal to firstHalfMax
-        /// int error2:  error of a pattern with color equal to secondHalfMin 
-        /// </summary>
-        
         public int min;
         public int max;
         public int firstHalfMax;
@@ -48,7 +36,13 @@ namespace Pointillism_image_generator
         public int error1;
         public int error2;
 
-        public RGBchannel(int min, int max)
+        /// <param name="min">the lowest intestity</param>
+        /// <param name="max">the highest intestity</param>
+        /// <param name="firstHalfMax">the maximum value in the first half of the intensity range</param>
+        /// <param name="secondHalfMin">the minimum value in the second half of the intensity range</param>
+        /// <param name="error1">error of a pattern with color equal to firstHalfMax</param>
+        /// <param name="error2">error of a pattern with color equal to secondHalfMin</param>
+        public RGBchannel(int min, int max, int firstHalfMax = 0, int secondHalfMin = 0, int error1 = 0, int error2 = 0)
         {
             this.min = min;
             this.max = max;
@@ -59,22 +53,16 @@ namespace Pointillism_image_generator
         }
     }
 
+    /// <summary>
+    /// Pointillism is a class for generating pointillistic image. 
+    /// Square patterns are inserted into the output image to make it look as close as possible to the original image.
+    /// The patterns can be rotated and have different colors.
+    ///     WindowSize:  size where fits pattern with any rotation about centre
+    ///     PatternsToAdd:  heap with patterns to add 
+    ///     PixelMultiple:  defines pixels on which to generate a pattern
+    /// </summary>
     public class Pointillism
     {
-        /// <summary>
-        /// A class for generating a pointillistic image.
-        /// 
-        /// Bitmap OriginalImage:  input image
-        /// Bitmap OutputImage:  generated image
-        /// int NumberOfPatterns:  number of patterns pasted to OutputImage
-        /// int PatternSize:  size of square patterns
-        /// int WindowSize: size where fits pattern with any rotation about centre
-        /// int HalfWindowSize: WindowSize / 2
-        /// SmartHeap PatternsToAdd:  heap with patterns to add 
-        /// int PixelMultiple:  defines pixels on which to generate a pattern
-        /// Bitmap WindowSizeBitmap:  bitmap of maximum size that is affected by pasting a pattern 
-        /// </summary>
-
         private Bitmap OriginalImage;
         private Bitmap OutputImage;
         private int NumberOfPatterns;
@@ -88,6 +76,14 @@ namespace Pointillism_image_generator
 
         private Bitmap WindowSizeBitmap;
 
+        /// <summary>
+        /// Set pattern size and get appropriate window size. 
+        /// Add padding to the original image to unify the error calculation for edge pixels.
+        /// Initialize white output image.
+        /// Initialize patterns.
+        /// </summary>
+        /// <param name="originalImage">input image</param>
+        /// <param name="patternSize">size of square patterns</param>
         public void Initialize(Image originalImage, int patternSize)
         {
             PatternSize = patternSize;
@@ -106,11 +102,20 @@ namespace Pointillism_image_generator
             using (Graphics g = Graphics.FromImage(OutputImage)) { g.Clear(Color.White); }
 
             PatternsToAdd = new SmartHeap(originalImage.Width * originalImage.Height / (PixelMultiple * PixelMultiple) + originalImage.Width + originalImage.Height);
+            InitializePatterns();
+        }
+
+        /// <summary>
+        /// Initialize patterns. Count error0. It is an error before inserting the pattern into the output image.
+        /// Since the background color of the output image was set to white, it is a white canvas error with the original image.
+        /// </summary>
+        private void InitializePatterns()
+        {
             Bitmap whiteCanvas = new Bitmap(WindowSize, WindowSize, PixelFormat.Format24bppRgb);
             using (Graphics g = Graphics.FromImage(whiteCanvas)) { g.Clear(Color.White); }
-            for (int j = HalfWindowSize; j < originalImage.Height + HalfWindowSize; j += PixelMultiple)
+            for (int j = HalfWindowSize; j < OriginalImage.Height - HalfWindowSize; j += PixelMultiple)
             {
-                for (int i = HalfWindowSize; i < originalImage.Width + HalfWindowSize; i += PixelMultiple)
+                for (int i = HalfWindowSize; i < OriginalImage.Width - HalfWindowSize; i += PixelMultiple)
                 {
                     (int redError, int greenError, int blueError) = GetError(whiteCanvas, i, j);
                     int error0 = redError + greenError + blueError;
@@ -119,12 +124,16 @@ namespace Pointillism_image_generator
             }
         }
 
+        /// <summary>
+        /// Add the best possible pattern to the output image.
+        /// </summary>
+        /// <returns>If exists a pattern which improves the output image.</returns>
         public bool GeneratePointilismImage()
         {
-            // Add the best possible pattern. If no pattern was added, return false. 
             return AddBestOfBestPatterns();
         }
 
+        /// <returns>The output image without padding.</returns>
         public Bitmap GetOutputImage()
         {
             return OutputImage.Clone(new Rectangle(
@@ -135,11 +144,17 @@ namespace Pointillism_image_generator
                 PixelFormat.Format24bppRgb);
         }
 
+
+        /// <returns>Number of patterns pasted in the output image.</returns>
         public int GetNumberOfPatterns()
         {
             return NumberOfPatterns;
         }
 
+        /// <summary>Add pattern to bitmap. Properties of pattern define where to put it.</summary>
+        /// <param name="bmp">bitmap</param>
+        /// <param name="pattern">pattern to add</param>
+        /// <returns>Bitmap with added pattern.</returns>
         private Bitmap AddPattern(Bitmap bmp, Pattern pattern)
         {
             using (Graphics graphics = Graphics.FromImage(bmp))
@@ -156,10 +171,10 @@ namespace Pointillism_image_generator
             return bmp;
         }
 
+        /// <summary>Get a pattern with the best improvement and add it to the output image.</summary>
+        /// <returns>If the pattern was added or not.</returns>
         private bool AddBestOfBestPatterns()
         {
-            // Get a pattern with the best improvement and add it to an output image. 
-
             Node node = PatternsToAdd.GetMax();
             if (node.improvement <= 0)
             {
@@ -172,6 +187,9 @@ namespace Pointillism_image_generator
             return true;
         }
 
+        /// <summary>Update patterns in the window size region of the changed pattern.</summary>
+        /// <param name="xIndex">x-coordinate of the changed pattern</param>
+        /// <param name="yIndex">y-coordinate of the changed pattern</param>
         private void UpdatePatterns(int xIndex, int yIndex)
         {
             (int iStart, int iEnd) = GetIndexesOfRegion(xIndex, WindowSize, true);
@@ -189,10 +207,15 @@ namespace Pointillism_image_generator
             }
         }
 
+        /// <summary>
+        /// Find a pattern on given index that the best reflects the original image.
+        /// It requiers to try different combinations of rotation and color.
+        /// </summary>
+        /// <param name="xIndex">x-coordinate of searched pattern</param>
+        /// <param name="yIndex">y-coordinate of searched pattern</param>
+        /// <returns>Node with best pattern and its error</returns>
         private Node GetBestPatternOnIndex(int xIndex, int yIndex)
         {
-            // Find a pattern on given index that the best reflects the original image. 
-
             int smallestError = int.MaxValue;
             int bestAngle = 0;
             int bestColor = 0;
@@ -219,10 +242,12 @@ namespace Pointillism_image_generator
             return new Node(pattern, 0, 0, smallestError);
         }
 
+        /// <summary>A binary search performed seperately on each rgb channel.</summary>
+        /// <param name="windowSizeBmp">window size bitmap cropped from the output image</param>
+        /// <param name="pattern1">pattern whose best color is sought</param>
+        /// <returns>color in ARGB format</returns>
         private (int, int) GetBestColorOfPattern(Bitmap windowSizeBmp, Pattern pattern1)
         {
-            // A binary search performed seperately on each rgb channel.
-
             int x = pattern1.xIndex;
             int y = pattern1.yIndex;
 
@@ -278,21 +303,32 @@ namespace Pointillism_image_generator
             return (GenerateColorARGB(rgbBest[0], rgbBest[1], rgbBest[2]), error);
         }
 
+        /// <summary> Returns maximum of first half from given range. </summary>
+        /// <param name="min">start of range</param>
+        /// <param name="max">end of range</param>
+        /// <returns>maximum of first half</returns>
         private int GetFirstHalfMax(int min, int max)
         {
             return min + (max - min) / 2;
         }
 
+        /// <summary>Returns a color in ARGB format. Alpha channel is set to 255.</summary>
+        /// <param name="red">value of red channel</param>
+        /// <param name="green">value of green channel</param>
+        /// <param name="blue">value of blue channel</param>
+        /// <returns>color in ARGB format</returns>
         private int GenerateColorARGB(int red, int green, int blue)
         {
             return 255 << 24 | red << 16 | green << 8 | blue;
         }
 
+        /// <summary>Compute an error between given bitmap and the original image.</summary>
+        /// <param name="windowSizeBmp">window size bitmap cropped from the output image and with added pattern</param>
+        /// <param name="x">x-coordinate of pattern in the output image</param>
+        /// <param name="y">y-coordinate of pattern in the output image</param>
+        /// <returns>error values for each rgb channel</returns>
         private (int, int, int) GetError(Bitmap windowSizeBmp, int x, int y)
         {
-            // Bitmap is a window size region of the output image with a new pattern.
-            // The coordinates of a pattern in the output image are (x, y).
-
             int redError = 0;
             int greenError = 0;
             int blueError = 0;
@@ -312,10 +348,13 @@ namespace Pointillism_image_generator
             return (redError, greenError, blueError);
         }
 
-        private (int, int) GetIndexesOfRegion(int index, int region, bool xAxis)
+        /// <summary> Returns the region indexes that do not overlap the side padding. </summary>
+        /// <param name="index">centre of region</param>
+        /// <param name="region">size of region</param>
+        /// <param name="xCoord">indicates whether it is x- or y-coordinate</param>
+        /// <returns>x- or y-coordinates of region</returns>
+        private (int, int) GetIndexesOfRegion(int index, int region, bool xCoord)
         {
-            // Returns the region indexes that do not overlap the side padding.
-
             int start = index - region / 2;
             int end = start + region;
             if (start <= HalfWindowSize)
@@ -325,7 +364,7 @@ namespace Pointillism_image_generator
             else
             {
                 int size = OriginalImage.Height;
-                if (xAxis)
+                if (xCoord)
                 {
                     size = OriginalImage.Width;
                 }
@@ -337,6 +376,9 @@ namespace Pointillism_image_generator
             }
         }
 
+        /// <summary> WindowSize is size where fits pattern with any rotation about centre. </summary>
+        /// <param name="patternSize">size of pattern</param>
+        /// <returns>appropriate size of window</returns>
         private int PatternSizeToWindowSize(int patternSize)
         {
             switch (patternSize)

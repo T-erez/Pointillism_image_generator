@@ -3,22 +3,25 @@ using System.Collections.Generic;
 
 namespace Pointillism_image_generator
 {
+    /// <summary>
+    /// Class Node represents a pattern and its improvement that define, which pattern is better. 
+    /// The pattern error must be stored to calculate the improvement.
+    /// The value backgroundContribution is not used in other parts of the program, but could be used to cover the background first.
+    /// Class supports comparing of instances.
+    /// </summary>
     public class Node : IComparable<Node>
     {
-        /// <summary>
-        /// Node represents a pattern and its improvement that define, which pattern is better. 
-        /// The pattern error must be stored to calculate the improvement.
-        /// 
-        /// int backgroundContribution:  a number of background pixels, that are overlapped by the pattern,
-        ///         this value is not used in other parts of the program, but could be used to cover the background first
-        /// </summary>
-
         public readonly Pattern pattern;
         public int improvement;
         public readonly int backgroundContribution;
         public readonly int error;
 
-
+        /// <summary>Initialize properties of Node.</summary>
+        /// <param name="pattern">a pattern stored in node</param>
+        /// <param name="improvement">improvement of generated image after pattern is added</param>
+        /// <param name="backgroundContribution">number of background pixels in generated image covered by pattern</param>
+        /// <param name="error">difference between the window size region in the output image with pattern
+        /// and the corresponding region in the original image</param>
         public Node(Pattern pattern, int improvement, int backgroundContribution, int error)
         {
             this.pattern = pattern;
@@ -108,17 +111,18 @@ namespace Pointillism_image_generator
         public override int GetHashCode() => (pattern.xIndex, pattern.yIndex, improvement).GetHashCode();
     }
 
+    /// <summary>
+    /// Class SmartHeap includes a max heap and a dictionary which helps to change nodes in the heap faster.
+    /// </summary>
     public class SmartHeap
     {
-        /// <summary>
-        /// Smart heap includes a max heap and a dictionary which helps to change nodes in heap faster.
-        /// </summary>
-       
         private int capacity;
         private int count;
         Node[] heap;
         Dictionary<(int, int), int> heapIndexes;
 
+        /// <summary>Initialize SmartHeap</summary>
+        /// <param name="capacity">capacity of heap</param>
         public SmartHeap(int capacity)
         {
             this.capacity = capacity;
@@ -127,6 +131,9 @@ namespace Pointillism_image_generator
             count = 0;
         }
 
+        /// <summary>Add an element to the heap. Specify error0 to count pattern improvement value.</summary>
+        /// <param name="node">node to add</param>
+        /// <param name="error0">error of window size area in the output image behind the pattern (error of background)</param>
         public void Add(Node node, int error0)
         {
             if (count == capacity)
@@ -140,6 +147,8 @@ namespace Pointillism_image_generator
             BubbleUp(count - 1);
         }
 
+        /// <summary>Returns a node without removing it from the heap. </summary>
+        /// <returns>Node with the best pattern to add</returns>
         public Node GetMax()
         {
             if (count == 0)
@@ -149,6 +158,8 @@ namespace Pointillism_image_generator
             return heap[0];
         }
 
+        /// <summary>Changes a node in the heap. The node is found by pattern coordinates.</summary>
+        /// <param name="node">node with pattern and error</param>
         public void Change(Node node)
         {
             int nodeIndex = heapIndexes[(node.pattern.xIndex, node.pattern.yIndex)];
