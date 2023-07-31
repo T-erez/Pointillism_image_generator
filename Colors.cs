@@ -1,38 +1,25 @@
 ﻿using System;
+using System.Drawing;
 
 namespace Pointillism_image_generator;
 
 /// <summary>
-/// ColorArgb represents a color in 32-bit ARGB format. 
-/// </summary>
-public struct ColorArgb
-{
-    public int Value;
-
-    public ColorArgb(int value) => Value = value;
-    public int ToInt() => Value;
-}
-
-
-/// <summary>
 /// ColorRgb represents a color in RGB format. Values for each channel are stored in fields 'Red', 'Green' and 'Blue'.
 /// </summary>
-internal struct ColorRgb
+public struct ColorRgb
 {
-    public int Red;
-    public int Green;
-    public int Blue;
+    public byte Red;
+    public byte Green;
+    public byte Blue;
 
-    public ColorRgb(int red, int green, int blue)
+    public ColorRgb(byte red, byte green, byte blue)
     {
         Red = red;
         Green = green;
         Blue = blue;
     }
 
-    /// <summary>Returns a color in ARGB format. Alpha channel is set to 255.</summary>
-    /// <returns>The color in ARGB format.</returns>
-    public ColorArgb ToArgb() => new ColorArgb(255 << 24 | Red << 16 | Green << 8 | Blue);
+    public Color ToColor() => Color.FromArgb(Red, Green, Blue);
 }
 
 
@@ -137,8 +124,8 @@ internal struct RgbColorRange
 /// </summary>
 internal struct RgbChannelRange
 {
-    private int _min;
-    private int _max;
+    private byte _min;
+    private byte _max;
 
     public RgbChannelRange()
     {
@@ -147,8 +134,8 @@ internal struct RgbChannelRange
     }
 
     public bool NotDone => _max - _min > 2; 
-    public int FirstHalfMax => _min + (_max - _min) / 2;
-    public int SecondHalfMin => FirstHalfMax + 1;
+    public byte FirstHalfMax => (byte) (_min + (_max - _min) / 2);
+    public byte SecondHalfMin => (byte) (FirstHalfMax + 1);
 
     /// <summary>
     /// Halves the range based on which half has the smaller error.
@@ -171,7 +158,7 @@ internal struct RgbChannelRange
     /// <param name="errorSecondHalfMin">error of 'SecondHalfMin'</param>
     /// <returns>The best value for the color channel and its error.</returns>
     /// <exception cref="InvalidOperationException">'NotDone' is true.</exception>
-    public (int, int) GetBestColor(int errorFirstHalfMax, int errorSecondHalfMin)
+    public (byte, int) GetBestColor(int errorFirstHalfMax, int errorSecondHalfMin)
     {
         if (NotDone) throw new InvalidOperationException();
         

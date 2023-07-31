@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 
 namespace Pointillism_image_generator;
 #nullable enable
@@ -8,19 +9,19 @@ public struct SquarePattern
 {
     public readonly int XIndex;
     public readonly int YIndex;
-    public ColorArgb ColorArgb;
+    public ColorRgb ColorRgb;
     public int Angle;
 
     /// <summary>Initializes pattern properties.</summary>
     /// <param name="xIndex">x-coordinate of the centre of the pattern in the generated image</param>
     /// <param name="yIndex">y-coordinate of the centre of the pattern in the generated image</param>
-    /// <param name="color">color in ARGB format</param>
+    /// <param name="colorRgb">color in RGB format</param>
     /// <param name="angle">angle of rotation about the centre</param>
-    public SquarePattern(int xIndex, int yIndex, ColorArgb color, int angle)
+    public SquarePattern(int xIndex, int yIndex, ColorRgb colorRgb, int angle)
     {
         XIndex = xIndex;
         YIndex = yIndex;
-        ColorArgb = color;
+        ColorRgb = colorRgb;
         Angle = angle;
     }
 }
@@ -110,7 +111,7 @@ public class PatternNode : IComparable<PatternNode>, IUpdatable<PatternNode>, IH
         return leftNode.Improvement < rightNode.Improvement;
     }
 
-    public static bool operator >(PatternNode leftPatternNode, PatternNode rightPatternNode) => !(leftPatternNode < rightPatternNode | leftPatternNode == rightPatternNode);
+    public static bool operator >(PatternNode leftNode, PatternNode rightNode) => !(leftNode < rightNode | leftNode == rightNode);
 
     public override int GetHashCode() => (xIndex: SquarePattern.XIndex, yIndex: SquarePattern.YIndex, Improvement).GetHashCode();
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 
@@ -10,34 +11,37 @@ namespace Pointillism_image_generator
     /// PointillismImageGenerator is a class for generating a pointillistic image. 
     /// Square patterns are pasted in the generated image to make it look as close as possible to the original image.
     /// The patterns can be rotated and have different colors.
+    /// Add patterns to the generated image by calling GeneratePointillismImage() repeatedly. 
     /// </summary>
     public class PointillismImageGenerator
     {
         private readonly Bitmap _originalImage;
-        private Bitmap _outputImage;
+        private Bitmap _generatedImage;
         private int _numberOfPatterns;
 
         private readonly int _patternSize;
         private readonly int _windowSize; // size where fits pattern with any rotation about centre
         private int HalfWindowSize => _windowSize / 2;
-        private readonly SmartHeap<PatternNode, (int, int)> _patternsToAdd;
+        private SmartHeap<PatternNode, (int, int)> _patternsToAdd;
+        private const int RotationsCount = 3;
+        private const int RotationalSymmetry = 4;
         
         private readonly Color _backgroundColor;
-        private const int PixelMultiple = 4; // defines pixels on which to generate a pattern
-        private Bitmap _windowSizeBitmap;
+        private bool[][,] _isBackground; //the field is used to determine which pixels of window size region
+                                         //are covered by pattern depending on its rotation
+        private const int PixelMultiple = 2; // defines pixels on which to generate a pattern
 
         /// <summary>
         /// Initializes the generator.
         /// </summary>
         /// <param name="originalImage">original (input) image</param>
         /// <param name="patternSize">size of a pattern</param>
-        /// <param name="backgroundColor">color of background in the generated image</param>
+        /// <param name="backgroundColor">background color in the generated image</param>
         public PointillismImageGenerator(Image originalImage, int patternSize, Color backgroundColor)
         {
             _patternSize = patternSize;
             _windowSize = PatternSizeToWindowSize(_patternSize);
             _backgroundColor = backgroundColor;
-            _windowSizeBitmap = new Bitmap(_windowSize, _windowSize);
 
             int padding = 2 * HalfWindowSize;
             _originalImage = new Bitmap(originalImage.Width + padding, originalImage.Height + padding, PixelFormat.Format24bppRgb);
@@ -46,12 +50,52 @@ namespace Pointillism_image_generator
                 g.Clear(backgroundColor);
                 g.DrawImage(originalImage, HalfWindowSize, HalfWindowSize, originalImage.Width, originalImage.Height);
             }    // padding has color 'backgroundColor' 
-            _outputImage = new Bitmap(_originalImage.Width, _originalImage.Height, PixelFormat.Format24bppRgb);
-            using (Graphics g = Graphics.FromImage(_outputImage)) { g.Clear(backgroundColor); }
+            _generatedImage = new Bitmap(_originalImage.Width, _originalImage.Height, PixelFormat.Format32bppArgb);
+            using (Graphics g = Graphics.FromImage(_generatedImage)) { g.Clear(backgroundColor); }
 
+            InitializeIsBackground();
             _patternsToAdd = new SmartHeap<PatternNode, (int, int)>(
                 originalImage.Width * originalImage.Height / (PixelMultiple * PixelMultiple) + originalImage.Width + originalImage.Height);
             InitializePatterns();
+        }
+        
+        /// <summary>
+        /// Initializes '_isBackground'.
+        /// </summary>
+        private void InitializeIsBackground()
+        {
+            _isBackground = new bool[RotationsCount][,];
+
+            for (int i = 0; i < RotationsCount; i++)
+            {
+                _isBackground[i] = new bool[_windowSize, _windowSize];
+                Bitmap bitmap = new Bitmap(_windowSize, _windowSize);
+                var backgroundColor = Color.FromArgb(255,255,255);
+                using (Graphics g = Graphics.FromImage(bitmap)) g.Clear(backgroundColor);
+
+                int angle = i * (360 / RotationalSymmetry) / RotationsCount;
+                AddPattern(bitmap, new SquarePattern(_windowSize / 2 + 1, _windowSize / 2 + 1, new ColorRgb(0,0,0), angle));
+
+                BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                    ImageLockMode.ReadOnly, bitmap.PixelFormat);
+                unsafe
+                {
+                    int pixelSize = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
+
+                    for (int y = 0; y < bitmap.Height; y++)
+                    {
+                        byte* ptr = (byte*) data.Scan0 + y * data.Stride;
+
+                        for (int x = 0; x < bitmap.Width; x++)
+                        {
+                            Color color = Color.FromArgb(ptr[2], ptr[1], ptr[0]);
+                            _isBackground[i][x, y] = color == backgroundColor;
+                            ptr += pixelSize;
+                        }
+                    }
+                }
+                bitmap.UnlockBits(data);
+            }
         }
 
         /// <summary>
@@ -74,7 +118,7 @@ namespace Pointillism_image_generator
         /// <returns>The generated image.</returns>
         public Bitmap GetOutputImage()
         {
-            return _outputImage.Clone(new Rectangle(
+            return _generatedImage.Clone(new Rectangle(
                 HalfWindowSize,
                 HalfWindowSize,
                 _originalImage.Width - _windowSize,
@@ -106,7 +150,7 @@ namespace Pointillism_image_generator
             if (patternNode.Improvement <= 0)
                 return false;
 
-            AddPattern(_outputImage, patternNode.SquarePattern);
+            AddPattern(_generatedImage, patternNode.SquarePattern);
             ++_numberOfPatterns;
             UpdatePatterns(patternNode.SquarePattern.XIndex, patternNode.SquarePattern.YIndex);
             return true;
@@ -115,18 +159,15 @@ namespace Pointillism_image_generator
         /// <summary>Adds pattern to a bitmap. Properties of the pattern define where to put it.</summary>
         /// <param name="bmp">a bitmap</param>
         /// <param name="squarePattern">a pattern to add</param>
-        /// <returns>The bitmap with added pattern.</returns>
-        private Bitmap AddPattern(Bitmap bmp, SquarePattern squarePattern)
+        private void AddPattern(Bitmap bmp, SquarePattern squarePattern)
         {
             using Graphics graphics = Graphics.FromImage(bmp);
             graphics.TranslateTransform(squarePattern.XIndex, squarePattern.YIndex);
             graphics.RotateTransform(squarePattern.Angle);
-            graphics.TranslateTransform(-_patternSize / 2, -_patternSize / 2);
+            graphics.TranslateTransform((float) (-_patternSize / 2.0), (float) (-_patternSize / 2.0));
 
-            using Brush brush = new SolidBrush(Color.FromArgb(squarePattern.ColorArgb.ToInt()));
+            using Brush brush = new SolidBrush(squarePattern.ColorRgb.ToColor());
             graphics.FillRectangle(brush, 0, 0, _patternSize, _patternSize);
-
-            return bmp;
         }
 
         /// <summary>Updates patterns in the window size region of newly added pattern.</summary>
@@ -164,86 +205,123 @@ namespace Pointillism_image_generator
 
             for (int angle = 0; angle < 90; angle += 30)
             {
-                _windowSizeBitmap = _outputImage.Clone(
-                    new Rectangle(xIndex - HalfWindowSize, yIndex - HalfWindowSize, _windowSize, _windowSize),
-                    _outputImage.PixelFormat);
                 pattern.Angle = angle;
-                var (color, error) = FindBestColorOfPattern(_windowSizeBitmap, pattern);
+                var (color, error) = FindBestColorOfPattern(pattern);
 
                 if (error >= smallestError) continue;
                 smallestError = error;
                 bestPattern.Angle = angle;
-                bestPattern.ColorArgb = color;
+                bestPattern.ColorRgb = color;
             }
             return new PatternNode(bestPattern, smallestError);
         }
         
         /// <summary>Finds the best color of pattern using a binary search performed separately on each rgb channel.</summary>
-        /// <param name="windowSizeBmp">window size bitmap cropped from the generated image</param>
         /// <param name="pattern">pattern whose color is being searched for</param>
-        /// <returns>Color in ARGB format and error of pattern.</returns>
-        private (ColorArgb, Error) FindBestColorOfPattern(Bitmap windowSizeBmp, SquarePattern pattern)
+        /// <returns>Color in RGB format and error of pattern.</returns>
+        private (ColorRgb, Error) FindBestColorOfPattern(SquarePattern pattern)
         {
-            SquarePattern pattern1 = new SquarePattern(HalfWindowSize, HalfWindowSize, pattern.ColorArgb, pattern.Angle);
-            SquarePattern pattern2 = pattern1;
+            SquarePattern pattern2 = pattern;
             RgbColorRange rgbColorRange = new RgbColorRange();
             ErrorRgb errorFirstHalf = default;
             ErrorRgb errorSecondHalf = default;
             
             while (rgbColorRange.NotDone)
             {
-                pattern1.ColorArgb = rgbColorRange.FirstHalfMax.ToArgb();
-                pattern2.ColorArgb = rgbColorRange.SecondHalfMin.ToArgb();
-                errorFirstHalf = ComputeError(AddPattern(windowSizeBmp, pattern1), pattern.XIndex, pattern.YIndex);
-                errorSecondHalf = ComputeError(AddPattern(windowSizeBmp, pattern2), pattern.XIndex, pattern.YIndex);
+                pattern.ColorRgb = rgbColorRange.FirstHalfMax;
+                pattern2.ColorRgb = rgbColorRange.SecondHalfMin;
+                errorFirstHalf = ComputeError(pattern);
+                errorSecondHalf = ComputeError(pattern2);
                 rgbColorRange.UpdateRange(errorFirstHalf, errorSecondHalf);
             }
             var (bestRgb, error) = rgbColorRange.GetBestColor(errorFirstHalf, errorSecondHalf);
-            return (bestRgb.ToArgb(), error);
+            return (bestRgb, error);
         }
 
-        /// <summary>Computes an error between given bitmap and the corresponding part of the original image.</summary>
-        /// <param name="windowSizeBmp">window size bitmap with added pattern (cropped from the output image)</param>
-        /// <param name="x">x-coordinate of pattern in the generated image</param>
-        /// <param name="y">y-coordinate of pattern in the generated image</param>
+        /// <summary>
+        /// Computes an error of pattern.
+        /// </summary>
+        /// <param name="pattern">a pattern that does not have to be inserted into the generated image</param>
         /// <returns>Error in RGB format.</returns>
-        private ErrorRgb ComputeError(Bitmap windowSizeBmp, int x, int y)
+        private ErrorRgb ComputeError(SquarePattern pattern)
         {
             ErrorRgb error = new();
-
-            for (int j = y - HalfWindowSize; j < y + HalfWindowSize; j++)
+            Rectangle window = new Rectangle(pattern.XIndex - _patternSize / 2, pattern.YIndex - _patternSize / 2, _patternSize, _patternSize);
+            BitmapData dataOriginal  = _originalImage.LockBits(window,ImageLockMode.ReadOnly, _originalImage.PixelFormat);
+            BitmapData dataGenerated = _generatedImage.LockBits(window, ImageLockMode.ReadOnly, _generatedImage.PixelFormat);
+            unsafe
             {
-                for (int i = x - HalfWindowSize; i < x + HalfWindowSize; i++)
+                int pixelSizeOriginal = Image.GetPixelFormatSize(_originalImage.PixelFormat) / 8;
+                int pixelSizeGenerated = Image.GetPixelFormatSize(_generatedImage.PixelFormat) / 8;
+
+                for (int y = 0; y < _patternSize; y++)
                 {
-                    Color originalPixel = _originalImage.GetPixel(i, j);
-                    Color newPixel = windowSizeBmp.GetPixel(i - x + HalfWindowSize, j - y + HalfWindowSize);
-                    error.Red += Math.Abs(originalPixel.R - newPixel.R);
-                    error.Green += Math.Abs(originalPixel.G - newPixel.G);
-                    error.Blue += Math.Abs(originalPixel.B - newPixel.B);
+                    byte* ptrOriginal = (byte*) dataOriginal.Scan0 + y * dataOriginal.Stride;
+                    byte* ptrGenerated = (byte*) dataGenerated.Scan0 + y * dataGenerated.Stride;
+
+                    for (int x = 0; x < _patternSize; x++)
+                    {
+                        ColorRgb colorOriginal = new ColorRgb(ptrOriginal[2], ptrOriginal[1], ptrOriginal[0]);
+
+                        ColorRgb colorGenerated = pattern.ColorRgb;
+                        if (_isBackground[AngleToIndex(pattern.Angle)][x,y])
+                            colorGenerated = new ColorRgb(ptrGenerated[2], ptrGenerated[1], ptrGenerated[0]);
+
+                        error.Red += Math.Abs(colorOriginal.Red - colorGenerated.Red);
+                        error.Green += Math.Abs(colorOriginal.Green - colorGenerated.Green);
+                        error.Blue += Math.Abs(colorOriginal.Blue - colorGenerated.Blue);
+                        
+                        ptrOriginal += pixelSizeOriginal;
+                        ptrGenerated += pixelSizeGenerated;
+                    }
                 }
             }
+            _originalImage.UnlockBits(dataOriginal);
+            _generatedImage.UnlockBits(dataGenerated);
             return error;
         }
 
-        /// <summary>Computes an error between the original image and the background of generated image.</summary>
-        /// <param name="x">x-coordinate of pattern in the generated image</param>
-        /// <param name="y">y-coordinate of pattern in the generated image</param>
-        /// <returns>Error in RGB format.</returns>
-        private Error ComputeBackgroundError(int x, int y)
+        /// <summary>
+        /// Translates angle of rotation to index into 'isBackground' field
+        /// </summary>
+        /// <param name="angle"></param>
+        /// <returns>Index.</returns>
+        private static int AngleToIndex(int angle)
         {
-            Error backgroundError = 0;
+            return angle / (360 / RotationalSymmetry / RotationsCount);
+        }
 
-            for (int j = y - HalfWindowSize; j < y + HalfWindowSize; j++)
+        /// <summary>Computes an error between the original image and the background of generated image.</summary>
+        /// <param name="centreX">x-coordinate of pattern in the generated image</param>
+        /// <param name="centreY">y-coordinate of pattern in the generated image</param>
+        /// <returns>Error in RGB format.</returns>
+        private Error ComputeBackgroundError(int centreX, int centreY)
+        {
+            ErrorRgb backgroundError = new();
+            Rectangle window = new Rectangle(centreX - _patternSize / 2, centreY - _patternSize / 2, _patternSize, _patternSize);
+            BitmapData data  = _originalImage.LockBits(window,ImageLockMode.ReadOnly, _originalImage.PixelFormat);
+            unsafe
             {
-                for (int i = x - HalfWindowSize; i < x + HalfWindowSize; i++)
+                int pixelSize = Image.GetPixelFormatSize(_originalImage.PixelFormat) / 8;
+
+                for (int y = 0; y < _patternSize; y++)
                 {
-                    Color originalPixel = _originalImage.GetPixel(i, j);
-                    backgroundError += Math.Abs(originalPixel.R - _backgroundColor.R);
-                    backgroundError += Math.Abs(originalPixel.G - _backgroundColor.G);
-                    backgroundError += Math.Abs(originalPixel.B - _backgroundColor.B);
+                    byte* ptr = (byte*) data.Scan0 + y * data.Stride;
+
+                    for (int x = 0; x < _patternSize; x++)
+                    {
+                        ColorRgb color = new ColorRgb(ptr[2], ptr[1], ptr[0]);
+
+                        backgroundError.Red += Math.Abs(color.Red - _backgroundColor.R);
+                        backgroundError.Green += Math.Abs(color.Green - _backgroundColor.G);
+                        backgroundError.Blue += Math.Abs(color.Blue - _backgroundColor.B);
+                        
+                        ptr += pixelSize;
+                    }
                 }
             }
-            return backgroundError;
+            _originalImage.UnlockBits(data);
+            return backgroundError.Red + backgroundError.Green + backgroundError.Blue;
         }
 
         /// <summary> Returns the region indices that do not overlap the side padding. </summary>
