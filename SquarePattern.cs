@@ -7,40 +7,41 @@ namespace Pointillism_image_generator;
 /// <summary>A structure for patterns, that will be pasted in the generated image. Patterns are squares.</summary>
 public struct SquarePattern
 {
-    public readonly int XIndex;
-    public readonly int YIndex;
+    public readonly Point Centre;
     public ColorRgb ColorRgb;
     public int Angle;
 
-    /// <summary>Initializes pattern properties.</summary>
-    /// <param name="xIndex">x-coordinate of the centre of the pattern in the generated image</param>
-    /// <param name="yIndex">y-coordinate of the centre of the pattern in the generated image</param>
+    /// <summary>Initializes pattern.</summary>
+    /// <param name="centre">the centre of the pattern in the generated image</param>
     /// <param name="colorRgb">color in RGB format</param>
     /// <param name="angle">angle of rotation about the centre</param>
-    public SquarePattern(int xIndex, int yIndex, ColorRgb colorRgb, int angle)
+    public SquarePattern(Point centre, ColorRgb colorRgb, int angle)
     {
-        XIndex = xIndex;
-        YIndex = yIndex;
+        Centre = centre;
         ColorRgb = colorRgb;
         Angle = angle;
     }
 }
 
+
 /// <summary>
-/// Class PatternNode represents a pattern and its improvement. Improvement defines, which pattern is better. 
+/// Class *** represents a pattern and its improvement. Improvement defines, which pattern is better. 
 /// The pattern error must be stored to calculate the improvement.
-/// The value backgroundContribution is not used in other parts of the program, but it could be used to cover the background first.
 /// Class implements IComparable interface.
 /// </summary>
-public class PatternNode : IComparable<PatternNode>, IUpdatable<PatternNode>, IHasId<(int, int)>
+public class PatternNode : IComparable<PatternNode>, IUpdatable<PatternNode>, IHasId<Point>
 {
     public readonly SquarePattern SquarePattern;
-    public int Improvement; //improvement of generated image after pattern is added
+    /// <summary>
+    /// Improvement of generated image after pattern is added.
+    /// </summary>
+    public int Improvement;
+    /// The value backgroundContribution is not used in other parts of the program, but it could be used to cover the background first.
     //public readonly int BackgroundContribution; //number of background pixels in the generated image covered by pattern
     public readonly Error Error;
-    public (int, int) Id => (SquarePattern.XIndex, SquarePattern.YIndex);
+    public Point Id => SquarePattern.Centre;
 
-    /// <summary>Initializes properties of Node.</summary>
+    /// <summary>Initializes ***.</summary>
     /// <param name="squarePattern">a pattern stored in a node</param>
     /// <param name="error">difference between the window size region in the output image with pattern and
     /// the corresponding region in the original image</param>
@@ -113,5 +114,5 @@ public class PatternNode : IComparable<PatternNode>, IUpdatable<PatternNode>, IH
 
     public static bool operator >(PatternNode leftNode, PatternNode rightNode) => !(leftNode < rightNode | leftNode == rightNode);
 
-    public override int GetHashCode() => (xIndex: SquarePattern.XIndex, yIndex: SquarePattern.YIndex, Improvement).GetHashCode();
+    public override int GetHashCode() => (Index: SquarePattern.Centre, Improvement).GetHashCode();
 }

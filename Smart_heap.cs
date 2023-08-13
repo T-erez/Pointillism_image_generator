@@ -35,9 +35,9 @@ public interface IUpdatable<TSelf>
 /// </summary>
 public class SmartHeap<TNode, TNodeId> where TNode: IComparable<TNode>, IUpdatable<TNode>, IHasId<TNodeId> where TNodeId : notnull
 {
-    private readonly int _capacity;
+    private readonly int? _capacity;
     private int _count;
-    private readonly TNode[] _heap;
+    private readonly List<TNode> _heap;
     private readonly Dictionary<TNodeId, int> _nodeIdToHeapIndices;
 
     /// <summary>Initializes SmartHeap</summary>
@@ -45,9 +45,20 @@ public class SmartHeap<TNode, TNodeId> where TNode: IComparable<TNode>, IUpdatab
     public SmartHeap(int capacity)
     {
         _capacity = capacity;
-        _heap = new TNode[capacity];
+        _heap = new List<TNode>(capacity);
         _nodeIdToHeapIndices = new Dictionary<TNodeId, int>(capacity);
         _count = 0;
+    }
+
+    /// <summary>
+    /// Initializes SmartHeap
+    /// </summary>
+    public SmartHeap()
+    {
+        _heap = new List<TNode>();
+        _nodeIdToHeapIndices = new Dictionary<TNodeId, int>();
+        _count = 0;
+        _capacity = null;
     }
 
     /// <summary>Adds an element to the heap.</summary>
@@ -56,8 +67,10 @@ public class SmartHeap<TNode, TNodeId> where TNode: IComparable<TNode>, IUpdatab
     {
         if (_count == _capacity)
             throw new IndexOutOfRangeException("Heap has reached its capacity.");
+        if (_nodeIdToHeapIndices.ContainsKey(node.Id))
+            throw new ArgumentException("Node already is in the heap.");
             
-        _heap[_count] = node;
+        _heap.Add(node);
         _nodeIdToHeapIndices[node.Id] = _count;
         _count++;
         BubbleUp(_count - 1);
