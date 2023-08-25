@@ -35,9 +35,10 @@ namespace Pointillism_image_generator
         private const int PatternRotationalSymmetry = 4;
         private const int PatternRotationsCount = 3;
 
-        private const int SubimageSize = 250;
+        private int _subimageSize;
         private Subimages _subimages = null!;
-        private int _improvement = 0;
+        private int _improvementLevel;
+        private int _improvementLevelStep;
         /// <summary>
         /// PixelMultiple defines pixels on which to generate a pattern. For value x, pattern will be generated on every (x^2)-th pixel.
         /// The smaller the value, the more precise the generated image is. 
@@ -72,6 +73,10 @@ namespace Pointillism_image_generator
             _imageWithoutPadding = new Rectangle(HalfWindowSize, HalfWindowSize,
                 _originalBmpData.Width - 2 * HalfWindowSize,
                 _originalBmpData.Height - 2 * HalfWindowSize);
+            _subimageSize = Math.Max(originalImage.Width / 13, originalImage.Height / 13);  // -> number of threads <196
+            int maxImprovement = 255 * 3 * _patternSize * _patternSize;
+            _improvementLevelStep = (int) (maxImprovement / 7.0);
+            _improvementLevel = maxImprovement - _improvementLevelStep;
 
             InitializeIsCovered();
             InitializePatterns();
@@ -135,10 +140,12 @@ namespace Pointillism_image_generator
         /// </summary>
         private void InitializePatterns()
         {
-            _subimages = new Subimages(_imageWithoutPadding, SubimageSize);
-
             int indicesPerRow = DivideRoundingUp(_imageWithoutPadding.Width, PixelMultiple);
             int indicesPerColumn = DivideRoundingUp(_imageWithoutPadding.Height, PixelMultiple);
+            
+            Rectangle patternsRegion = new Rectangle(HalfWindowSize, HalfWindowSize, (indicesPerRow - 1) * PixelMultiple + 1,
+                (indicesPerColumn - 1) * PixelMultiple + 1);
+            _subimages = new Subimages(patternsRegion, _subimageSize);
             Parallel.For(0, indicesPerRow * indicesPerColumn, i =>
             {
                 int x = HalfWindowSize + (i % indicesPerRow) * PixelMultiple;
@@ -173,28 +180,30 @@ namespace Pointillism_image_generator
         /// <returns>True if all the patterns were added, otherwise false - the generated image can not be improved.</returns>
         public bool AddBestOfBestPatterns(int count)
         {
-            bool anyPatternAdded = false;
             object countLock = new ();
 
             while (count > 0)
             {
+                int patternsAdded = 0;
                 foreach (var group in _subimages.Groups)
                 {
                     Parallel.ForEach(group, (subimage, state) =>
                     {
                         bool patternAdded = AddPatternToSubimage(subimage);
-                        anyPatternAdded |= patternAdded;
                         if (!patternAdded) return;
                         lock (countLock)
                         {
                             --count;
+                            ++patternsAdded;
                             if (count == 0)
                                 state.Break();
                         }
                     });
                 }
-                if (!anyPatternAdded)
+                if (_improvementLevel == 0 && patternsAdded == 0)
                     return false;
+                if (patternsAdded < _subimages.Count / 3.0)
+                    _improvementLevel = Math.Max(0, _improvementLevel - _improvementLevelStep);
             }
             
             return true;
@@ -206,7 +215,7 @@ namespace Pointillism_image_generator
         private bool AddPatternToSubimage(Subimage subimage)
         {
             PatternNode node = subimage.Patterns.PeekMax()!;
-            if (node.Improvement <= _improvement)
+            if (node.Improvement <= _improvementLevel)
                 return false;
             
             AddPattern(node.SquarePattern);

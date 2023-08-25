@@ -17,6 +17,7 @@ internal class Subimages
     private readonly int _subimageSize;
     private readonly Rectangle _region;
     public Group[] Groups;
+    public int Count => _data.Length;
 
     public Subimages(Rectangle region, int subimageSize)
     {
