@@ -5,14 +5,18 @@ using System.Runtime.InteropServices;
 namespace Pointillism_image_generator;
 
 /// <summary>
-/// BitmapDataThreadSafe enables to edit different parts of Bitmap at the same time.
+/// BitmapDataMultiThreads enables to edit different parts of Bitmap at the same time.
 /// It stores a deep copy of BitmapData.
-/// Call UpdateBitmap() to reflect the changes made to BitmapDataThreadSafe. 
+/// Call UpdateBitmap() to reflect the changes made to BitmapDataMultiThreads.
+/// Editing the same part of BitmapDataThreadSafe is not thread safe, nor calling UpdateBitmap() while editing. 
 /// </summary>
-public class BitmapDataThreadSafe
+public class BitmapDataMultiThreads
 {
     public readonly Bitmap Bitmap;
     private byte[] _data;
+    /// <summary>
+    /// Returns i-th byte of the bitmap.
+    /// </summary>
     public byte this[int i]
     {
         get => _data[i];
@@ -28,10 +32,10 @@ public class BitmapDataThreadSafe
     private readonly Rectangle _wholeBitmap;
 
     /// <summary>
-    /// Initializes BitmapDataThreadSafe.
+    /// Initializes BitmapDataMultiThreads.
     /// </summary>
     /// <param name="bitmap">a bitmap to edit</param>
-    public BitmapDataThreadSafe(Bitmap bitmap)
+    public BitmapDataMultiThreads(Bitmap bitmap)
     {
         Bitmap = bitmap;
         Width = Bitmap.Width;
@@ -46,7 +50,7 @@ public class BitmapDataThreadSafe
     }
     
     /// <summary>
-    /// Updates original bitmap to reflect the changes made to BitmapDataThreadSafe.
+    /// Updates original bitmap to reflect the changes made to BitmapDataMultiThreads.
     /// </summary>
     public void UpdateBitmap()
     {

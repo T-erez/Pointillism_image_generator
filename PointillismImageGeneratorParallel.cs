@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 #nullable enable
@@ -13,12 +14,12 @@ namespace Pointillism_image_generator
     /// PointillismImageGenerator is a class for generating a pointillistic image. 
     /// Square patterns are pasted in the generated image to make it look as close as possible to the original image.
     /// The patterns can be rotated and have different colors.
-    /// Add patterns to the generated image by calling GeneratePointillismImage() repeatedly. 
+    /// Add patterns to the generated image by calling AddPatterns().
     /// </summary>
-    public class PointillismImageGenerator
+    public class PointillismImageGeneratorParallel
     {
-        private readonly BitmapDataThreadSafe _originalBmpData;
-        private BitmapDataThreadSafe _generatedBmpData;
+        private readonly BitmapDataMultiThreads _originalBmpData;
+        private BitmapDataMultiThreads _generatedBmpData;
         private Bitmap _outputBitmap;
         private Rectangle _imageWithoutPadding;
         private readonly Color _backgroundColor;
@@ -35,7 +36,6 @@ namespace Pointillism_image_generator
         private const int PatternRotationalSymmetry = 4;
         private const int PatternRotationsCount = 3;
 
-        private int _subimageSize;
         private Subimages _subimages = null!;
         private int _improvementLevel;
         private int _improvementLevelStep;
@@ -51,8 +51,19 @@ namespace Pointillism_image_generator
         /// <param name="originalImage">original (input) image</param>
         /// <param name="patternSize">size of a pattern</param>
         /// <param name="backgroundColor">background color of the generated image</param>
-        public PointillismImageGenerator(Image originalImage, int patternSize, Color backgroundColor)
+        /// <param name="threadCount">maximum number of threads used</param>
+        /// <exception cref="ArgumentOutOfRangeException">Exception is thrown if either pattern size or thread count is a non-positive number.</exception>
+        /// <exception cref="ArgumentException">Exception is thrown if original image is not in 24bpp or 32bpp pixel format.</exception>
+        public PointillismImageGeneratorParallel(Image originalImage, int patternSize, Color backgroundColor, int threadCount = 169)
         {
+            if (patternSize <= 0)
+                throw new ArgumentOutOfRangeException(nameof(patternSize), "Pattern size must be a positive number.");
+            if (threadCount <= 0)
+                throw new ArgumentOutOfRangeException(nameof(threadCount), "Thread count must be a positive number.");
+            if (originalImage.PixelFormat is not (PixelFormat.Format24bppRgb or PixelFormat.Format32bppArgb
+                or PixelFormat.Format32bppRgb or PixelFormat.Format32bppPArgb))
+                throw new ArgumentException("Image pixel format is not supported.");
+            
             _patternSize = patternSize;
             _windowSize = PatternSizeToWindowSize(_patternSize);
             _backgroundColor = backgroundColor;
@@ -64,22 +75,23 @@ namespace Pointillism_image_generator
                 g.Clear(backgroundColor);
                 g.DrawImage(originalImage, HalfWindowSize, HalfWindowSize, originalImage.Width, originalImage.Height);
             }    // padding has color 'backgroundColor'
-            _originalBmpData = new BitmapDataThreadSafe(bitmapOriginal);
+            _originalBmpData = new BitmapDataMultiThreads(bitmapOriginal);
 
             _outputBitmap = new Bitmap(_originalBmpData.Width, _originalBmpData.Height, originalImage.PixelFormat);
             using (Graphics g = Graphics.FromImage(_outputBitmap)) { g.Clear(backgroundColor); }
-            _generatedBmpData = new BitmapDataThreadSafe(_outputBitmap);
+            _generatedBmpData = new BitmapDataMultiThreads(_outputBitmap);
 
-            _imageWithoutPadding = new Rectangle(HalfWindowSize, HalfWindowSize,
-                _originalBmpData.Width - 2 * HalfWindowSize,
-                _originalBmpData.Height - 2 * HalfWindowSize);
-            _subimageSize = Math.Max(originalImage.Width / 13, originalImage.Height / 13);  // -> number of threads <196
+            _imageWithoutPadding = new Rectangle(HalfWindowSize, HalfWindowSize, _originalBmpData.Width - padding,
+                _originalBmpData.Height - padding);
             int maxImprovement = 255 * 3 * _patternSize * _patternSize;
             _improvementLevelStep = (int) (maxImprovement / 7.0);
             _improvementLevel = maxImprovement - _improvementLevelStep;
 
             InitializeIsCovered();
-            InitializePatterns();
+            
+            int subimagesPerOneDimension = (int) Math.Sqrt(threadCount);
+            int subimageSize = Math.Max(originalImage.Width / subimagesPerOneDimension, originalImage.Height / subimagesPerOneDimension);
+            InitializePatterns(subimageSize);
         }
         
         /// <summary>
@@ -97,7 +109,7 @@ namespace Pointillism_image_generator
                 using (Graphics g = Graphics.FromImage(bitmap)) g.Clear(backgroundColor);
 
                 int angle = i * (360 / PatternRotationalSymmetry) / PatternRotationsCount;
-                Point centre = new Point(_windowSize / 2, _windowSize / 2);
+                Point centre = new Point(HalfWindowSize, HalfWindowSize);
                 AddPattern(bitmap, new SquarePattern(centre, new ColorRgb(0,0,0), angle));
 
                 BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
@@ -138,92 +150,119 @@ namespace Pointillism_image_generator
         /// <summary>
         /// Initializes patterns for each subimage.
         /// </summary>
-        private void InitializePatterns()
+        private void InitializePatterns(int subimageSize)
         {
             int indicesPerRow = DivideRoundingUp(_imageWithoutPadding.Width, PixelMultiple);
             int indicesPerColumn = DivideRoundingUp(_imageWithoutPadding.Height, PixelMultiple);
             
             Rectangle patternsRegion = new Rectangle(HalfWindowSize, HalfWindowSize, (indicesPerRow - 1) * PixelMultiple + 1,
                 (indicesPerColumn - 1) * PixelMultiple + 1);
-            _subimages = new Subimages(patternsRegion, _subimageSize);
+            _subimages = new Subimages(patternsRegion, subimageSize, _windowSize);
             Parallel.For(0, indicesPerRow * indicesPerColumn, i =>
             {
                 int x = HalfWindowSize + (i % indicesPerRow) * PixelMultiple;
                 int y = HalfWindowSize + (i / indicesPerRow) * PixelMultiple;
-                PatternNode patternNode = GetBestPatternOnIndex(x, y);
+                PatternWithImprovement pattern = GetBestPatternOnIndex(x, y);
                 Error backgroundError = ComputeBackgroundError(x, y);
-                patternNode.Improvement = (backgroundError - patternNode.Error).ToInt();
-                lock (_subimages[x,y].Patterns)
+                pattern.Improvement = (backgroundError - pattern.Error).ToInt();
+                lock (_subimages.GetSubimage(x,y).Patterns)
                 {
-                    _subimages[x, y].Patterns.Add(patternNode);
+                    _subimages.GetSubimage(x, y).Patterns.Add(pattern);
                 }
             });
         }
 
         /// <returns>The generated image.</returns>
-        public Bitmap GetOutputImage()
+        private Bitmap GetOutputImage()
         {
             _generatedBmpData.UpdateBitmap();
             return _outputBitmap.Clone(_imageWithoutPadding, _outputBitmap.PixelFormat);
         }
         
-        /// <returns>A number of patterns pasted in the generated image.</returns>
-        public int GetNumberOfPatterns()
-        {
-            return _numberOfPatterns;
-        }
-        
         /// <summary>
-        /// Adds the best possible patterns to the generated image.
+        /// Adds the best possible patterns to the generated image. To see how many patterns are left to add, look at the patternsToAddShared value.
         /// </summary>
-        /// <param name="count">number of patterns to be added</param>
-        /// <returns>True if all the patterns were added, otherwise false - the generated image can not be improved.</returns>
-        public bool AddBestOfBestPatterns(int count)
+        /// <param name="patternsToAddShared">number of patterns to be added</param>
+        /// <param name="progressImages">number of images to save during generation</param>
+        /// <param name="token">token to cancel execution</param>
+        /// <exception cref="ArgumentOutOfRangeException">Exception is thrown if number of patterns to add is non-positive
+        /// or if number of images to save is negative.</exception>
+        /// <returns>bool: True if all the patterns were added or the execution was canceled. False means that the generated
+        /// image can not be improved.
+        /// IList of generated bitmaps: Contains progress images and final generated image sorted by number of patterns in ascending order.</returns>
+        public (bool, IList<GeneratedBitmap>) AddPatterns(IntReference patternsToAddShared, CancellationToken token = default, int progressImages = 0)
         {
-            object countLock = new ();
-
-            while (count > 0)
+            int patternsToAdd = patternsToAddShared.Value;
+            if (patternsToAdd <= 0 || progressImages < 0) throw new ArgumentOutOfRangeException();
+                
+            List<GeneratedBitmap> generatedBitmaps = new(progressImages + 1);
+            int step = progressImages == 0 ? patternsToAdd : patternsToAdd / progressImages;
+            int nextToSave = step;
+            int patternsAdded = 0;
+            while (patternsToAdd > 0)
             {
-                int patternsAdded = 0;
+                int patternsAddedInIteration = 0;
+                #region OneIteration
+
                 foreach (var group in _subimages.Groups)
                 {
+                    var save = nextToSave;
                     Parallel.ForEach(group, (subimage, state) =>
                     {
-                        bool patternAdded = AddPatternToSubimage(subimage);
-                        if (!patternAdded) return;
-                        lock (countLock)
+                        if (AddPatternToSubimage(subimage))
                         {
-                            --count;
-                            ++patternsAdded;
-                            if (count == 0)
-                                state.Break();
+                            lock (patternsToAddShared)
+                            {
+                                --patternsToAdd; 
+                                patternsToAddShared.Value = patternsToAdd;
+                                ++patternsAddedInIteration;
+                                ++patternsAdded;
+                                if (patternsToAdd <= 0 || patternsAdded >= save) state.Break();
+                            }
                         }
+                        if (!token.IsCancellationRequested) return;
+                        state.Break();
+                        nextToSave = patternsAdded;
                     });
+                    if (patternsAdded >= nextToSave)
+                    {
+                        generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), _numberOfPatterns));
+                        nextToSave += step;
+                    }
+                    if (token.IsCancellationRequested || patternsToAdd <= 0) return (true, generatedBitmaps);
                 }
-                if (_improvementLevel == 0 && patternsAdded == 0)
-                    return false;
-                if (patternsAdded < _subimages.Count / 3.0)
-                    _improvementLevel = Math.Max(0, _improvementLevel - _improvementLevelStep);
+
+                #endregion
+                if (_improvementLevel == 0 && patternsAddedInIteration == 0) return (false, generatedBitmaps);
+                
+                if (patternsAddedInIteration < 5) UpdateImprovementLevel();
             }
-            
-            return true;
+            return (true, generatedBitmaps);
+        }
+
+        /// <summary>
+        /// Lowers the level of improvement.
+        /// </summary>
+        private void UpdateImprovementLevel()
+        {
+            _improvementLevel = Math.Max(0, _improvementLevel - _improvementLevelStep);    
         }
 
         /// <summary>Takes a pattern with the best improvement for a subimage and adds it to the generated image. 
-        /// The pattern is added only if the improvement value is a positive number.</summary>
+        /// The pattern is added only if the improvement value is greater than '_improvementLevel'.</summary>
         /// <returns>True if pattern was added, otherwise false.</returns>
         private bool AddPatternToSubimage(Subimage subimage)
         {
-            PatternNode node = subimage.Patterns.PeekMax()!;
-            if (node.Improvement <= _improvementLevel)
+            PatternWithImprovement pattern = subimage.Patterns.PeekMax()!;
+            if (pattern.Improvement <= _improvementLevel)
                 return false;
             
-            AddPattern(node.SquarePattern);
+            AddPattern(pattern.SquarePattern);
             lock (_numberOfPatternsLock)
             {
                 ++_numberOfPatterns;
             }
-            UpdatePatterns(node.SquarePattern.Centre);
+            UpdatePatterns(pattern.SquarePattern.Centre);
             return true;
         }
         
@@ -277,7 +316,7 @@ namespace Pointillism_image_generator
                 {
                     if ((x - HalfWindowSize) % PixelMultiple == 0 && (y - HalfWindowSize) % PixelMultiple == 0)
                     {
-                        _subimages[x, y].Patterns.Update(GetBestPatternOnIndex(x, y));
+                        _subimages.GetSubimage(x, y).Patterns.Update(GetBestPatternOnIndex(x, y));
                     }
                 }
             }
@@ -290,7 +329,7 @@ namespace Pointillism_image_generator
         /// <param name="x">x-coordinate of the searched pattern</param>
         /// <param name="y">y-coordinate of the searched pattern</param>
         /// <returns>A node with the best pattern and its error.</returns>
-        private PatternNode GetBestPatternOnIndex(int x, int y)
+        private PatternWithImprovement GetBestPatternOnIndex(int x, int y)
         {
             // if (x < _imageWithoutPadding.X || x > _imageWithoutPadding.X + _imageWithoutPadding.Width ||
             //     y < _imageWithoutPadding.Y || y > _imageWithoutPadding.Y + _imageWithoutPadding.Height)
@@ -312,7 +351,7 @@ namespace Pointillism_image_generator
                 bestPattern.Angle = angle;
                 bestPattern.ColorRgb = color;
             }
-            return new PatternNode(bestPattern, smallestError);
+            return new PatternWithImprovement(bestPattern, smallestError);
         }
         
         /// <summary>Finds the best color of pattern using a binary search performed separately on each rgb channel.</summary>
@@ -382,7 +421,7 @@ namespace Pointillism_image_generator
         /// <returns>Error in RGB format.</returns>
         private Error ComputeBackgroundError(int centreX, int centreY)
         {
-            ErrorRgb backgroundError = new();
+            Error backgroundError = new();
             Point leftUpperCorner = new Point(centreX - HalfWindowSize, centreY - HalfWindowSize);
             int scan0Original = leftUpperCorner.Y * _originalBmpData.Stride + leftUpperCorner.X * _originalBmpData.PixelSize;
 
@@ -393,18 +432,18 @@ namespace Pointillism_image_generator
                 {
                     ColorRgb color = new ColorRgb(_originalBmpData[index+2], _originalBmpData[index+1], _originalBmpData[index]);
 
-                    backgroundError.Red += Math.Abs(color.Red - _backgroundColor.R);
-                    backgroundError.Green += Math.Abs(color.Green - _backgroundColor.G);
-                    backgroundError.Blue += Math.Abs(color.Blue - _backgroundColor.B);
+                    backgroundError += Math.Abs(color.Red - _backgroundColor.R);
+                    backgroundError += Math.Abs(color.Green - _backgroundColor.G);
+                    backgroundError += Math.Abs(color.Blue - _backgroundColor.B);
 
                     index += _originalBmpData.PixelSize;
                 }
             }
             
-            return backgroundError.Red + backgroundError.Green + backgroundError.Blue;
+            return backgroundError;
         }
 
-        /// <summary> Returns region indices that do not overlap the side padding. </summary>
+        /// <summary> Returns region indices that do not overlap the side padding of generated image.</summary>
         /// <param name="centre">index of the centre of the region</param>
         /// <param name="regionSize">size of region</param>
         /// <param name="xCoord">indicates whether it is x- or y-coordinate</param>
@@ -431,12 +470,24 @@ namespace Pointillism_image_generator
         {
             switch (patternSize)
             {
-                case 9:
-                case 13:
-                    return patternSize / 2 + patternSize;
                 case 7:
+                    return 11;
+                case 9:
+                    return 13;
                 case 11:
-                    return patternSize / 2 + patternSize + 1;
+                    return 17;
+                case 13:
+                    return 19;
+                case 15:
+                    return 23;
+                case 17:
+                    return 25;
+                case 19:
+                    return 27;
+                case 21:
+                    return 31;
+                case 23:
+                    return 33;
                 default:
                     throw new ArgumentException();
             }

@@ -4,7 +4,7 @@ using System.Drawing;
 namespace Pointillism_image_generator;
 
 /// <summary>
-/// ColorRgb represents a color in RGB format. Values for each channel are stored in fields 'Red', 'Green' and 'Blue'.
+/// The ColorRgb structure represents a color in RGB format. Values for each channel are stored in fields 'Red', 'Green' and 'Blue'.
 /// </summary>
 public struct ColorRgb
 {
@@ -19,25 +19,35 @@ public struct ColorRgb
         Blue = blue;
     }
 
+    /// <summary>
+    /// Converts this ColorRgb structure to equivalent Color structure. 
+    /// </summary>
+    /// <returns>Color</returns>
     public Color ToColor() => Color.FromArgb(Red, Green, Blue);
 }
 
 
 /// <summary>
-/// ErrorRgb represents an error between the original and the generated image.
-/// The differences between individual RGB channels are stored separately.
+/// The ErrorRgb structure represents an error (difference) between the original and the generated image.
+/// Error of each RGB channels is stored separately.
 /// </summary>
 internal struct ErrorRgb
 {
     public int Red;
     public int Green;
     public int Blue;
+
+    /// <summary>
+    /// Converts this ErrorRgb structure to Error structure.
+    /// </summary>
+    /// <returns>Sum of errors in each RGB channel.</returns>
+    public Error ToError() => new(Red + Green + Blue);
 }
 
 
 /// <summary>
-/// Error represents an error between the original and the generated image.
-/// It is the sum of differences between individual RGB channels.
+/// The Error structure represents an error between the original and the generated image.
+/// It is a sum of differences between individual RGB channels.
 /// </summary>
 public struct Error : IComparable<Error>
 {
@@ -64,8 +74,7 @@ public struct Error : IComparable<Error>
 }
 
 
-/// <summary>A structure RgbColorRange represents rgb color and contains values to find the best color
-/// for a pattern using a binary search.
+/// <summary>The RgbColorRange structure represents RGB color and contains values to find the best color for a pattern using a binary search.
 /// FirstHalfMax and SecondHalfMin are two values in the middle of the range.
 /// Call method UpdateRange() to shorten the range. Finally call GetBestColor().
 /// </summary>
@@ -81,8 +90,17 @@ internal struct RgbColorRange
         _green = new();
         _blue = new();
     }
+    /// <summary>
+    /// Maximum of the first half of the range.
+    /// </summary>
     public ColorRgb FirstHalfMax => new (_red.FirstHalfMax, _green.FirstHalfMax, _blue.FirstHalfMax);
+    /// <summary>
+    /// Minimum of the second half of the range.
+    /// </summary>
     public ColorRgb SecondHalfMin => new (_red.SecondHalfMin, _green.SecondHalfMin, _blue.SecondHalfMin);
+    /// <summary>
+    /// The best color has not been found yet.
+    /// </summary>
     public bool NotDone => _red.NotDone || _green.NotDone || _blue.NotDone;
     
     /// <summary>
@@ -109,18 +127,18 @@ internal struct RgbColorRange
         ColorRgb bestColor = new();
         ErrorRgb error = new();
 
-        (bestColor.Red, error.Red) = _red.GetBestColor(errorFirstHalfMax.Red, errorSecondHalfMin.Red);
-        (bestColor.Green, error.Green) = _green.GetBestColor(errorFirstHalfMax.Green, errorSecondHalfMin.Green);
-        (bestColor.Blue, error.Blue) = _blue.GetBestColor(errorFirstHalfMax.Blue, errorSecondHalfMin.Blue);
+        (bestColor.Red, error.Red) = _red.GetBestValue(errorFirstHalfMax.Red, errorSecondHalfMin.Red);
+        (bestColor.Green, error.Green) = _green.GetBestValue(errorFirstHalfMax.Green, errorSecondHalfMin.Green);
+        (bestColor.Blue, error.Blue) = _blue.GetBestValue(errorFirstHalfMax.Blue, errorSecondHalfMin.Blue);
 
         return (bestColor, new Error(error.Red + error.Green + error.Blue));
     }
 }
 
-/// <summary>A structure RgbChannelRange represents one rgb channel and contains values to find the best color
+/// <summary>The RgbChannelRange structure represents one RGB channel and contains values to find the best color
 /// for a pattern using a binary search.
 /// FirstHalfMax and SecondHalfMin are two values in the middle of the range.
-/// Call method UpdateRange() to shorten the range. Finally call GetBestColor().
+/// Call method UpdateRange() to shorten the range. Finally call GetBestValue().
 /// </summary>
 internal struct RgbChannelRange
 {
@@ -133,8 +151,17 @@ internal struct RgbChannelRange
         _max = 255;
     }
 
-    public bool NotDone => _max - _min > 2; 
+    /// <summary>
+    /// The best value has not been found yet.
+    /// </summary>
+    public bool NotDone => _max - _min > 2;
+    /// <summary>
+    /// Maximum of the first half of the range.
+    /// </summary>
     public byte FirstHalfMax => (byte) (_min + (_max - _min) / 2);
+    /// <summary>
+    /// Minimum of the second half of the range.
+    /// </summary>
     public byte SecondHalfMin => (byte) (FirstHalfMax + 1);
 
     /// <summary>
@@ -152,13 +179,13 @@ internal struct RgbChannelRange
     }
 
     /// <summary>
-    /// Selects the better color from a range of two values. An exception is thrown for a larger range. 
+    /// Selects the better value from a range of two values. An exception is thrown for a larger range. 
     /// </summary>
     /// <param name="errorFirstHalfMax">error of 'FirstHalfMax'</param>
     /// <param name="errorSecondHalfMin">error of 'SecondHalfMin'</param>
     /// <returns>The best value for the color channel and its error.</returns>
     /// <exception cref="InvalidOperationException">'NotDone' is true.</exception>
-    public (byte, int) GetBestColor(int errorFirstHalfMax, int errorSecondHalfMin)
+    public (byte, int) GetBestValue(int errorFirstHalfMax, int errorSecondHalfMin)
     {
         if (NotDone) throw new InvalidOperationException();
         

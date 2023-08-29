@@ -48,6 +48,7 @@ namespace Pointillism_image_generator
             this.checkBoxProgress = new System.Windows.Forms.CheckBox();
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.labelProgress = new System.Windows.Forms.Label();
+            this.btnCancel = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).BeginInit();
@@ -233,13 +234,12 @@ namespace Pointillism_image_generator
             // checkBoxProgress
             // 
             this.checkBoxProgress.AutoSize = true;
-            this.checkBoxProgress.Location = new System.Drawing.Point(443, 629);
+            this.checkBoxProgress.Location = new System.Drawing.Point(697, 632);
             this.checkBoxProgress.Name = "checkBoxProgress";
             this.checkBoxProgress.Size = new System.Drawing.Size(123, 24);
             this.checkBoxProgress.TabIndex = 20;
             this.checkBoxProgress.Text = "Save progress";
             this.checkBoxProgress.UseVisualStyleBackColor = true;
-            this.checkBoxProgress.CheckedChanged += new System.EventHandler(this.checkBoxProgress_CheckedChanged);
             // 
             // progressBar
             // 
@@ -259,11 +259,23 @@ namespace Pointillism_image_generator
             this.labelProgress.TabIndex = 22;
             this.labelProgress.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
+            // btnCancel
+            // 
+            this.btnCancel.BackColor = System.Drawing.Color.RosyBrown;
+            this.btnCancel.Location = new System.Drawing.Point(831, 632);
+            this.btnCancel.Name = "btnCancel";
+            this.btnCancel.Size = new System.Drawing.Size(65, 54);
+            this.btnCancel.TabIndex = 23;
+            this.btnCancel.Text = "Cancel";
+            this.btnCancel.UseVisualStyleBackColor = false;
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1326, 733);
+            this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.labelProgress);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.checkBoxProgress);
@@ -315,6 +327,7 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.CheckBox checkBoxProgress;
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Label labelProgress;
+        private System.Windows.Forms.Button btnCancel;
     }
 }
 
