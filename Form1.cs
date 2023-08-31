@@ -11,7 +11,7 @@ using System.Windows.Forms;
 
 namespace Pointillism_image_generator
 {
-    public partial class Form1 : Form
+    public sealed partial class Form1 : Form
     {
         private PointillismImageGeneratorParallel? _generator;
         private CancellationTokenSource _tokenSource = new();
@@ -19,11 +19,19 @@ namespace Pointillism_image_generator
         private string _imageName;
         private int _imagesToSave = 5;
         private List<int> _trackBarIndexToPatternsCount;
+
+        private const int GripSize = 16;
+        private readonly int _captionBarHeight;
+         
         
         public Form1()
         {
             InitializeComponent();
             CheckForIllegalCrossThreadCalls = false;
+            FormBorderStyle = FormBorderStyle.None;
+            DoubleBuffered = true;
+            SetStyle(ControlStyles.ResizeRedraw, true);
+            _captionBarHeight = btnClose.Height;
 
             for (int item = 7; item <= 23; item += 2)
             {
@@ -140,7 +148,6 @@ namespace Pointillism_image_generator
             checkBoxProgress.Enabled = false;
             progressBar.Maximum = patternsCount;
             progressBar.Visible = true;
-            labelProgress.Text = "Generating image...";
 
             IntReference patternsToAdd = patternsCount.ToIntReference();
             _tokenSource = new CancellationTokenSource();
@@ -157,7 +164,6 @@ namespace Pointillism_image_generator
                 else
                 {
                     btnAdd.Enabled = true;
-                    labelProgress.Text = "";
                     checkBoxProgress.Enabled = true;
                 }
             }, _tokenSource.Token);
@@ -235,10 +241,49 @@ namespace Pointillism_image_generator
             if (backgroundColorDialog.ShowDialog() == DialogResult.OK)
                 btnBackgroundColor.BackColor = backgroundColorDialog.Color;
         }
+        
+        protected override void OnPaint(PaintEventArgs e) {
+            Rectangle rectangle = new Rectangle(ClientSize.Width - GripSize, ClientSize.Height - GripSize, GripSize, GripSize);
+            ControlPaint.DrawSizeGrip(e.Graphics, BackColor, rectangle);
+        }
+
+        protected override void WndProc(ref Message m) {
+            if (m.Msg == 0x84) {  // Trap WM_NCHITTEST
+                Point pos = new Point(m.LParam.ToInt32());
+                pos = PointToClient(pos);
+                if (pos.Y < _captionBarHeight) {
+                    m.Result = (IntPtr)2;  // HTCAPTION
+                    return;
+                }
+                if (pos.X >= ClientSize.Width - GripSize && pos.Y >= ClientSize.Height - GripSize) {
+                    m.Result = (IntPtr)17; // HTBOTTOMRIGHT
+                    return;
+                }
+            }
+            base.WndProc(ref m);
+        }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             Directory.Delete(_imagesPath, true);
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void btnMaximize_Click(object sender, EventArgs e)
+        {
+            if (WindowState != FormWindowState.Maximized)
+                WindowState = FormWindowState.Maximized;
+            else
+                WindowState = FormWindowState.Normal;
+        }
+
+        private void btnMinimize_Click(object sender, EventArgs e)
+        {
+            WindowState = FormWindowState.Minimized;
         }
     }
 }
