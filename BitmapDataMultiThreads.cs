@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 
@@ -19,9 +20,17 @@ public class BitmapDataMultiThreads
     /// </summary>
     public byte this[int i]
     {
-        get => _data[i];
-        set {_data[i] = value; 
-            _updated = false; }
+        get
+        {
+            if (_disposed) throw new ObjectDisposedException(GetType().ToString());
+            return _data[i]; 
+        }
+        set 
+        {
+            if (_disposed) throw new ObjectDisposedException(GetType().ToString());
+            _data[i] = value; 
+            _updated = false; 
+        }
     }
 
     private bool _updated = true;
@@ -30,6 +39,8 @@ public class BitmapDataMultiThreads
     public readonly int PixelSize;
     public readonly int Stride;
     private readonly Rectangle _wholeBitmap;
+
+    private bool _disposed;
 
     /// <summary>
     /// Initializes BitmapDataMultiThreads.
@@ -54,6 +65,7 @@ public class BitmapDataMultiThreads
     /// </summary>
     public void UpdateBitmap()
     {
+        if (_disposed) throw new ObjectDisposedException(GetType().ToString());
         if (_updated)
             return;
 
@@ -64,6 +76,9 @@ public class BitmapDataMultiThreads
 
     public void Dispose()
     {
+        if (_disposed)
+            return;
         _bitmap.Dispose();
+        _disposed = true;
     }
 }
