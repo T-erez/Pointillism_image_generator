@@ -12,7 +12,7 @@ namespace Pointillism_image_generator;
 /// </summary>
 public class BitmapDataMultiThreads
 {
-    public readonly Bitmap Bitmap;
+    private readonly Bitmap _bitmap;
     private byte[] _data;
     /// <summary>
     /// Returns i-th byte of the bitmap.
@@ -37,9 +37,9 @@ public class BitmapDataMultiThreads
     /// <param name="bitmap">a bitmap to edit</param>
     public BitmapDataMultiThreads(Bitmap bitmap)
     {
-        Bitmap = bitmap;
-        Width = Bitmap.Width;
-        Height = Bitmap.Height;
+        _bitmap = bitmap;
+        Width = _bitmap.Width;
+        Height = _bitmap.Height;
         _wholeBitmap = new Rectangle(0, 0, Width, Height);
         BitmapData data = bitmap.LockBits(_wholeBitmap, ImageLockMode.ReadOnly, bitmap.PixelFormat);
         Stride = data.Stride;
@@ -57,8 +57,13 @@ public class BitmapDataMultiThreads
         if (_updated)
             return;
 
-        BitmapData data = Bitmap.LockBits(_wholeBitmap, ImageLockMode.WriteOnly, Bitmap.PixelFormat);
+        BitmapData data = _bitmap.LockBits(_wholeBitmap, ImageLockMode.WriteOnly, _bitmap.PixelFormat);
         Marshal.Copy(_data, 0, data.Scan0, _data.Length);
-        Bitmap.UnlockBits(data);
+        _bitmap.UnlockBits(data);
+    }
+
+    public void Dispose()
+    {
+        _bitmap.Dispose();
     }
 }

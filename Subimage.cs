@@ -12,7 +12,7 @@ namespace Pointillism_image_generator;
 /// </summary>
 internal class Subimages
 {
-    private Subimage[][] _data;
+    private Subimage[,] _data;
     private readonly int _subimageSize;
     private readonly Rectangle _region;
     private readonly int _subimagesPerRow;
@@ -26,8 +26,9 @@ internal class Subimages
     /// <param name="region">region of an image for which subimages are to be created</param>
     /// <param name="subimageSize">width of subimage, subimage is a square</param>
     /// <param name="windowSize">window size of a pattern</param>
+    /// <param name="patternsPerSubimage">maximum number of patterns in each subimage</param>
     /// <exception cref="ArgumentException">Exception is thrown when subimage size is smaller than window size.</exception>
-    public Subimages(Rectangle region, int subimageSize, int windowSize)
+    public Subimages(Rectangle region, int subimageSize, int windowSize, int patternsPerSubimage)
     {
         if (subimageSize < windowSize)
             throw new ArgumentException();
@@ -36,13 +37,12 @@ internal class Subimages
         _subimageSize = subimageSize;
         _subimagesPerRow = DivideRoundingUp(region.Width, subimageSize);
         _subimagesPerColumn = DivideRoundingUp(region.Height, subimageSize);
-        _data = new Subimage[_subimagesPerRow][];
+        _data = new Subimage[_subimagesPerRow,_subimagesPerColumn];
         for (int i = 0; i < _subimagesPerRow; i++)
         {
-            _data[i] = new Subimage[_subimagesPerColumn];
-            for (int j = 0; j < _data[i].Length; j++)
+            for (int j = 0; j < _subimagesPerColumn; j++)
             {
-                _data[i][j] = new Subimage();
+                _data[i, j] = new Subimage(patternsPerSubimage);
             }
         }
         Groups = new Group[] {
@@ -54,19 +54,19 @@ internal class Subimages
     }
     
     /// <summary>
-    /// Converts the image indices to the subimage.
+    /// Converts the image point to the subimage.
     /// </summary>
-    /// <returns>Subimage where the indices are located.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Indices are outside of the bounds of the image.</exception>
-    public Subimage GetSubimage(int xImageIndex, int yImageIndex)
+    /// <returns>Subimage where the point is located.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Point is outside of the bounds of the image.</exception>
+    public Subimage GetSubimage(Point point)
     {
-        if (xImageIndex < _region.X || xImageIndex >= _region.X + _region.Width ||
-            yImageIndex < _region.Y || yImageIndex >= _region.Y + _region.Height)
+        if (point.X < _region.X || point.X >= _region.X + _region.Width ||
+            point.Y < _region.Y || point.Y >= _region.Y + _region.Height)
             throw new ArgumentOutOfRangeException();
         
-        int xSubimageIndex = (xImageIndex - _region.X) / _subimageSize;
-        int ySubimageIndex = (yImageIndex - _region.Y) / _subimageSize;
-        return _data[xSubimageIndex][ySubimageIndex];
+        int xSubimageIndex = (point.X - _region.X) / _subimageSize;
+        int ySubimageIndex = (point.Y - _region.Y) / _subimageSize;
+        return _data[xSubimageIndex, ySubimageIndex];
     }
 
     /// <summary>
@@ -121,7 +121,7 @@ internal class Subimages
         {
             for (int i = startRow; i < _subimagesPerRow; i += 2)
             {
-                yield return _data[i][j];
+                yield return _data[i, j];
             }
         }
     }
@@ -150,5 +150,10 @@ internal struct Subimage
     public Subimage()
     {
         Patterns = new SmartHeap<PatternWithImprovement, Point>();
+    }
+
+    public Subimage(int numberOfPatterns)
+    {
+        Patterns = new SmartHeap<PatternWithImprovement, Point>(numberOfPatterns);
     }
 }

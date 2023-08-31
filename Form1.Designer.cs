@@ -29,6 +29,7 @@ namespace Pointillism_image_generator
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.pbxOriginalImage = new System.Windows.Forms.PictureBox();
             this.pbxOutputImage = new System.Windows.Forms.PictureBox();
             this.btnLoad = new System.Windows.Forms.Button();
@@ -49,6 +50,10 @@ namespace Pointillism_image_generator
             this.progressBar = new System.Windows.Forms.ProgressBar();
             this.labelProgress = new System.Windows.Forms.Label();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.btnBackgroundColor = new System.Windows.Forms.Button();
+            this.backgroundColorDialog = new System.Windows.Forms.ColorDialog();
+            this.saveFileDialog = new System.Windows.Forms.SaveFileDialog();
+            this.openFileDialog = new System.Windows.Forms.OpenFileDialog();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).BeginInit();
@@ -78,9 +83,11 @@ namespace Pointillism_image_generator
             // btnLoad
             // 
             this.btnLoad.BackColor = System.Drawing.Color.RosyBrown;
-            this.btnLoad.Location = new System.Drawing.Point(62, 575);
+            this.btnLoad.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnLoad.Location = new System.Drawing.Point(62, 488);
+            this.btnLoad.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnLoad.Name = "btnLoad";
-            this.btnLoad.Size = new System.Drawing.Size(94, 51);
+            this.btnLoad.Size = new System.Drawing.Size(100, 50);
             this.btnLoad.TabIndex = 2;
             this.btnLoad.Text = "Load";
             this.btnLoad.UseVisualStyleBackColor = false;
@@ -89,9 +96,11 @@ namespace Pointillism_image_generator
             // btnSave
             // 
             this.btnSave.BackColor = System.Drawing.Color.RosyBrown;
-            this.btnSave.Location = new System.Drawing.Point(1187, 575);
+            this.btnSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnSave.Location = new System.Drawing.Point(1187, 488);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(94, 51);
+            this.btnSave.Size = new System.Drawing.Size(100, 50);
             this.btnSave.TabIndex = 3;
             this.btnSave.Text = "Save";
             this.btnSave.UseVisualStyleBackColor = false;
@@ -100,9 +109,11 @@ namespace Pointillism_image_generator
             // btnStart
             // 
             this.btnStart.BackColor = System.Drawing.Color.RosyBrown;
-            this.btnStart.Location = new System.Drawing.Point(453, 572);
+            this.btnStart.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnStart.Location = new System.Drawing.Point(453, 487);
+            this.btnStart.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnStart.Name = "btnStart";
-            this.btnStart.Size = new System.Drawing.Size(94, 51);
+            this.btnStart.Size = new System.Drawing.Size(100, 50);
             this.btnStart.TabIndex = 5;
             this.btnStart.Text = "Start";
             this.btnStart.UseVisualStyleBackColor = false;
@@ -111,62 +122,64 @@ namespace Pointillism_image_generator
             // labelPatternSize
             // 
             this.labelPatternSize.AutoSize = true;
-            this.labelPatternSize.Location = new System.Drawing.Point(222, 574);
+            this.labelPatternSize.Location = new System.Drawing.Point(222, 487);
             this.labelPatternSize.Name = "labelPatternSize";
-            this.labelPatternSize.Size = new System.Drawing.Size(130, 20);
+            this.labelPatternSize.Size = new System.Drawing.Size(163, 21);
             this.labelPatternSize.TabIndex = 6;
             this.labelPatternSize.Text = "Select pattern size";
             // 
             // comboBoxPatternSize
             // 
-            this.comboBoxPatternSize.BackColor = System.Drawing.SystemColors.GradientActiveCaption;
+            this.comboBoxPatternSize.BackColor = System.Drawing.Color.RosyBrown;
             this.comboBoxPatternSize.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.comboBoxPatternSize.FormattingEnabled = true;
-            this.comboBoxPatternSize.Location = new System.Drawing.Point(222, 597);
+            this.comboBoxPatternSize.Location = new System.Drawing.Point(222, 508);
+            this.comboBoxPatternSize.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.comboBoxPatternSize.Name = "comboBoxPatternSize";
-            this.comboBoxPatternSize.Size = new System.Drawing.Size(151, 28);
+            this.comboBoxPatternSize.Size = new System.Drawing.Size(178, 29);
             this.comboBoxPatternSize.TabIndex = 7;
             // 
             // labelOriginalImage
             // 
             this.labelOriginalImage.AutoSize = true;
-            this.labelOriginalImage.Location = new System.Drawing.Point(79, 478);
+            this.labelOriginalImage.Location = new System.Drawing.Point(79, 406);
             this.labelOriginalImage.Name = "labelOriginalImage";
-            this.labelOriginalImage.Size = new System.Drawing.Size(108, 20);
+            this.labelOriginalImage.Size = new System.Drawing.Size(129, 21);
             this.labelOriginalImage.TabIndex = 9;
             this.labelOriginalImage.Text = "Original image";
             // 
             // labelGeneratedImage
             // 
             this.labelGeneratedImage.AutoSize = true;
-            this.labelGeneratedImage.Location = new System.Drawing.Point(1118, 478);
+            this.labelGeneratedImage.Location = new System.Drawing.Point(1118, 406);
             this.labelGeneratedImage.Name = "labelGeneratedImage";
-            this.labelGeneratedImage.Size = new System.Drawing.Size(124, 20);
+            this.labelGeneratedImage.Size = new System.Drawing.Size(161, 21);
             this.labelGeneratedImage.TabIndex = 10;
             this.labelGeneratedImage.Text = "Generated image";
             // 
             // labelOutputImage
             // 
             this.labelOutputImage.AutoSize = true;
-            this.labelOutputImage.Location = new System.Drawing.Point(750, 478);
+            this.labelOutputImage.Location = new System.Drawing.Point(750, 406);
             this.labelOutputImage.Name = "labelOutputImage";
-            this.labelOutputImage.Size = new System.Drawing.Size(146, 20);
+            this.labelOutputImage.Size = new System.Drawing.Size(183, 21);
             this.labelOutputImage.TabIndex = 11;
             this.labelOutputImage.Text = "Number of patterns: ";
             // 
             // labelNumberOfPatterns
             // 
             this.labelNumberOfPatterns.AutoSize = true;
-            this.labelNumberOfPatterns.Location = new System.Drawing.Point(902, 478);
+            this.labelNumberOfPatterns.Location = new System.Drawing.Point(923, 406);
             this.labelNumberOfPatterns.Name = "labelNumberOfPatterns";
-            this.labelNumberOfPatterns.Size = new System.Drawing.Size(17, 20);
+            this.labelNumberOfPatterns.Size = new System.Drawing.Size(19, 21);
             this.labelNumberOfPatterns.TabIndex = 12;
             this.labelNumberOfPatterns.Text = "0";
             // 
             // trackBar
             // 
             this.trackBar.BackColor = System.Drawing.Color.RosyBrown;
-            this.trackBar.Location = new System.Drawing.Point(935, 575);
+            this.trackBar.Location = new System.Drawing.Point(935, 488);
+            this.trackBar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.trackBar.Maximum = 20;
             this.trackBar.Minimum = 1;
             this.trackBar.Name = "trackBar";
@@ -178,18 +191,20 @@ namespace Pointillism_image_generator
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(725, 573);
+            this.label1.Location = new System.Drawing.Point(725, 487);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(95, 20);
+            this.label1.Size = new System.Drawing.Size(123, 21);
             this.label1.TabIndex = 15;
             this.label1.Text = "Add patterns";
             // 
             // btnAdd
             // 
             this.btnAdd.BackColor = System.Drawing.Color.RosyBrown;
-            this.btnAdd.Location = new System.Drawing.Point(831, 572);
+            this.btnAdd.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnAdd.Location = new System.Drawing.Point(831, 487);
+            this.btnAdd.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnAdd.Name = "btnAdd";
-            this.btnAdd.Size = new System.Drawing.Size(60, 54);
+            this.btnAdd.Size = new System.Drawing.Size(100, 50);
             this.btnAdd.TabIndex = 16;
             this.btnAdd.Text = "Add";
             this.btnAdd.UseVisualStyleBackColor = false;
@@ -198,22 +213,23 @@ namespace Pointillism_image_generator
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(944, 552);
+            this.label2.Location = new System.Drawing.Point(944, 470);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(102, 20);
+            this.label2.Size = new System.Drawing.Size(125, 21);
             this.label2.TabIndex = 17;
             this.label2.Text = "View progress";
             // 
             // numericUpDown
             // 
             this.numericUpDown.Increment = new decimal(new int[] {
-            100,
+            1000,
             0,
             0,
             0});
-            this.numericUpDown.Location = new System.Drawing.Point(725, 596);
+            this.numericUpDown.Location = new System.Drawing.Point(725, 507);
+            this.numericUpDown.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.numericUpDown.Maximum = new decimal(new int[] {
-            9500,
+            100000,
             0,
             0,
             0});
@@ -223,10 +239,10 @@ namespace Pointillism_image_generator
             0,
             0});
             this.numericUpDown.Name = "numericUpDown";
-            this.numericUpDown.Size = new System.Drawing.Size(100, 27);
+            this.numericUpDown.Size = new System.Drawing.Size(101, 27);
             this.numericUpDown.TabIndex = 19;
             this.numericUpDown.Value = new decimal(new int[] {
-            500,
+            1000,
             0,
             0,
             0});
@@ -234,9 +250,10 @@ namespace Pointillism_image_generator
             // checkBoxProgress
             // 
             this.checkBoxProgress.AutoSize = true;
-            this.checkBoxProgress.Location = new System.Drawing.Point(697, 632);
+            this.checkBoxProgress.Location = new System.Drawing.Point(697, 538);
+            this.checkBoxProgress.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.checkBoxProgress.Name = "checkBoxProgress";
-            this.checkBoxProgress.Size = new System.Drawing.Size(123, 24);
+            this.checkBoxProgress.Size = new System.Drawing.Size(148, 25);
             this.checkBoxProgress.TabIndex = 20;
             this.checkBoxProgress.Text = "Save progress";
             this.checkBoxProgress.UseVisualStyleBackColor = true;
@@ -244,37 +261,58 @@ namespace Pointillism_image_generator
             // progressBar
             // 
             this.progressBar.ForeColor = System.Drawing.Color.Coral;
-            this.progressBar.Location = new System.Drawing.Point(419, 698);
+            this.progressBar.Location = new System.Drawing.Point(419, 594);
+            this.progressBar.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.progressBar.Name = "progressBar";
-            this.progressBar.Size = new System.Drawing.Size(500, 23);
+            this.progressBar.Size = new System.Drawing.Size(501, 19);
             this.progressBar.Step = 1;
             this.progressBar.TabIndex = 21;
             // 
             // labelProgress
             // 
             this.labelProgress.AutoSize = true;
-            this.labelProgress.Location = new System.Drawing.Point(597, 675);
+            this.labelProgress.Location = new System.Drawing.Point(597, 573);
             this.labelProgress.Name = "labelProgress";
-            this.labelProgress.Size = new System.Drawing.Size(0, 20);
+            this.labelProgress.Size = new System.Drawing.Size(0, 21);
             this.labelProgress.TabIndex = 22;
             this.labelProgress.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // btnCancel
             // 
             this.btnCancel.BackColor = System.Drawing.Color.RosyBrown;
-            this.btnCancel.Location = new System.Drawing.Point(831, 632);
+            this.btnCancel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnCancel.Location = new System.Drawing.Point(831, 538);
+            this.btnCancel.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(65, 54);
+            this.btnCancel.Size = new System.Drawing.Size(100, 50);
             this.btnCancel.TabIndex = 23;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = false;
             this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             // 
+            // btnBackgroundColor
+            // 
+            this.btnBackgroundColor.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnBackgroundColor.Location = new System.Drawing.Point(222, 542);
+            this.btnBackgroundColor.Name = "btnBackgroundColor";
+            this.btnBackgroundColor.Size = new System.Drawing.Size(178, 55);
+            this.btnBackgroundColor.TabIndex = 24;
+            this.btnBackgroundColor.Text = "Change background color";
+            this.btnBackgroundColor.UseVisualStyleBackColor = true;
+            this.btnBackgroundColor.Click += new System.EventHandler(this.btnBackgroundColor_Click);
+            // 
+            // backgroundColorDialog
+            // 
+            this.backgroundColorDialog.AnyColor = true;
+            this.backgroundColorDialog.Color = System.Drawing.Color.White;
+            this.backgroundColorDialog.FullOpen = true;
+            // 
             // Form1
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 20F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 21F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1326, 733);
+            this.ClientSize = new System.Drawing.Size(1307, 645);
+            this.Controls.Add(this.btnBackgroundColor);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.labelProgress);
             this.Controls.Add(this.progressBar);
@@ -295,8 +333,13 @@ namespace Pointillism_image_generator
             this.Controls.Add(this.btnLoad);
             this.Controls.Add(this.pbxOutputImage);
             this.Controls.Add(this.pbxOriginalImage);
+            this.Font = new System.Drawing.Font("Century Gothic", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.Name = "Form1";
             this.Text = "Pointillism Image Generator";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).EndInit();
@@ -328,6 +371,10 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.ProgressBar progressBar;
         private System.Windows.Forms.Label labelProgress;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.Button btnBackgroundColor;
+        private System.Windows.Forms.ColorDialog backgroundColorDialog;
+        private System.Windows.Forms.SaveFileDialog saveFileDialog;
+        private System.Windows.Forms.OpenFileDialog openFileDialog;
     }
 }
 

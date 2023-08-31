@@ -13,10 +13,11 @@ namespace Pointillism_image_generator
 {
     public partial class Form1 : Form
     {
-        private PointillismImageGeneratorParallel _generator;
+        private PointillismImageGeneratorParallel? _generator;
         private CancellationTokenSource _tokenSource = new();
         private string _imagesPath;
         private string _imageName;
+        private int _imagesToSave = 5;
         private List<int> _trackBarIndexToPatternsCount;
         
         public Form1()
@@ -35,9 +36,12 @@ namespace Pointillism_image_generator
             Directory.CreateDirectory(_imagesPath);
 
             btnStart.Enabled = false;
+            btnBackgroundColor.BackColor = Color.White;
             btnAdd.Enabled = false;
             btnCancel.Enabled = false;
             btnSave.Enabled = false;
+            saveFileDialog.Filter = "Image File(*.JPG)|*.jpg|Image File(*.PNG)|*.png|Image File (*.BMP)|*.bmp";
+            openFileDialog.Filter = "Image Files(*.JPG;*.PNG,*.BMP)|*.JPG;*.PNG;*.BMP|All files (*.*)|*.*";
 
             trackBar.Maximum = -1;
             trackBar.Enabled = true;
@@ -48,11 +52,12 @@ namespace Pointillism_image_generator
         /// <summary> Loads original image. Enables Start button. Disables Add button. </summary>
         private void btnLoad_Click(object sender, EventArgs e)
         {
-            var image = UI.LoadImage(out var filePath);
+            var image = LoadImage(out var filePath);
             if (image is null)
                 return;
             pbxOriginalImage.Image = image;
             pbxOutputImage.Image = null;
+            labelNumberOfPatterns.Text = 0.ToString();
             _imageName = Path.GetFileName(filePath!);
 
             btnStart.Enabled = true;
@@ -60,6 +65,29 @@ namespace Pointillism_image_generator
             checkBoxProgress.Checked = false;
             btnAdd.Enabled = false;
             btnSave.Enabled = false;
+        }
+        
+        /// <summary>
+        /// Loads image from the user.
+        /// </summary>
+        /// <param name="filePath">filepath is valid if image is not null</param>
+        /// <returns>Returns null on failure, otherwise returns an image.</returns>
+        private Image? LoadImage(out string? filePath)
+        {
+            filePath = null;
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+                return null;
+                
+            filePath = openFileDialog.FileName;
+            try
+            {
+                return Image.FromFile(filePath);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Error. Select existing image file.");
+                return null;
+            }
         }
 
         /// <summary> Saves generated image. </summary>
@@ -72,13 +100,11 @@ namespace Pointillism_image_generator
                 return;
             }
 
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = "Image File(*.JPG)|*.jpg|Image File(*.PNG)|*.png|Image File (*.BMP)|*.bmp";
-            sfd.FileName = $"pointillism_{_imageName}";
+            saveFileDialog.FileName = $"pointillism_{_imageName}";
 
-            if (sfd.ShowDialog() == DialogResult.OK)
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                pbxOutputImage.Image.Save(sfd.FileName);
+                pbxOutputImage.Image.Save(saveFileDialog.FileName);
             }
         }
 
@@ -98,8 +124,8 @@ namespace Pointillism_image_generator
             _trackBarIndexToPatternsCount = new();
             
             int patternSize = int.Parse(comboBoxPatternSize.SelectedItem.ToString()!);
-            Color backgroundColor = Color.White;
-            _generator = new PointillismImageGeneratorParallel(pbxOriginalImage.Image, patternSize, backgroundColor);
+            _generator?.Dispose();
+            _generator = new PointillismImageGeneratorParallel(pbxOriginalImage.Image, patternSize, btnBackgroundColor.BackColor);
             AddPatterns(100);
             
             btnAdd.Enabled = true;
@@ -122,8 +148,8 @@ namespace Pointillism_image_generator
             Task.Run(() =>
             {
                 btnCancel.Enabled = true;
-                int imagesToSave = checkBoxProgress.Checked ? 5 : 0;
-                var (canBeImproved, generatedBitmaps) = _generator.AddPatterns(patternsToAdd, _tokenSource.Token, imagesToSave);
+                int imagesToSave = checkBoxProgress.Checked ? _imagesToSave : 0;
+                var (canBeImproved, generatedBitmaps) = _generator!.AddPatterns(patternsToAdd, imagesToSave, _tokenSource.Token);
                 btnCancel.Enabled = false;
                 UpdateTrackBar(generatedBitmaps);
                 if (!canBeImproved)
@@ -201,6 +227,18 @@ namespace Pointillism_image_generator
         {
             _tokenSource.Cancel();
             btnCancel.Enabled = false;
+        }
+
+        /// <summary>Sets background color of the generated image.</summary>
+        private void btnBackgroundColor_Click(object sender, EventArgs e)
+        {
+            if (backgroundColorDialog.ShowDialog() == DialogResult.OK)
+                btnBackgroundColor.BackColor = backgroundColorDialog.Color;
+        }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Directory.Delete(_imagesPath, true);
         }
     }
 }
