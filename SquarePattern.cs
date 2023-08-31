@@ -28,11 +28,11 @@ public struct SquarePattern
 
 
 /// <summary>
-/// Class PatternWithImprovement represents a pattern and its improvement. Improvement defines, which pattern is better. 
+/// The PatternWithImprovement structure represents a pattern and its improvement. Improvement defines, which pattern is better. 
 /// The pattern error must be stored to calculate the improvement.
-/// Class implements IComparable interface.
+/// Structure implements IComparable interface.
 /// </summary>
-public class PatternWithImprovement : IComparable<PatternWithImprovement>, IUpdatable<PatternWithImprovement>, IHasId<Point>
+public struct PatternWithImprovement : IComparable<PatternWithImprovement>, IUpdatable<PatternWithImprovement>, IHasId<Point>
 {
     public readonly SquarePattern SquarePattern;
     /// <summary>
@@ -59,11 +59,8 @@ public class PatternWithImprovement : IComparable<PatternWithImprovement>, IUpda
         Improvement = (oldOne.Error - Error).ToInt();
     }
 
-    public int CompareTo(PatternWithImprovement? other)
+    public int CompareTo(PatternWithImprovement other)
     {
-        if (other is null)
-            return 1;
-
         // int higherPriority = BackgroundContribution.CompareTo(otherNode.BackgroundContribution);
         // switch (higherPriority)
         // {
