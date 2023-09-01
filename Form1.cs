@@ -134,6 +134,7 @@ namespace Pointillism_image_generator
             int patternSize = int.Parse(comboBoxPatternSize.SelectedItem.ToString()!);
             _generator?.Dispose();
             _generator = new PointillismImageGeneratorParallel(pbxOriginalImage.Image, patternSize, btnBackgroundColor.BackColor);
+            labelProgress.Text = "";
             AddPatterns(100);
             
             btnAdd.Enabled = true;
