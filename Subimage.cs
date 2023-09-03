@@ -81,19 +81,19 @@ internal class Subimages
     private enum GroupNumber
     {
         /// <summary>
-        /// Top left group.
+        /// Even columns and even rows.
         /// </summary>
         One,
         /// <summary>
-        /// Top right group.
+        /// Odd columns and even rows.
         /// </summary>
         Two,
         /// <summary>
-        /// Bottom left group.
+        /// Even columns and odd rows.
         /// </summary>
         Three,
         /// <summary>
-        /// Bottom right group.
+        /// Odd columns and odd rows.
         /// </summary>
         Four
     }
