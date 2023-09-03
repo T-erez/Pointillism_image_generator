@@ -111,7 +111,12 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
             }
     
             #endregion
-            if (_improvementLevel == 0 && patternsAddedInIteration == 0) return (false, generatedBitmaps);
+
+            if (_improvementLevel == 0 && patternsAddedInIteration == 0)
+            {
+                generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
+                return (false, generatedBitmaps);
+            }
             
             if (patternsAddedInIteration < MinimumPatternsAddedInIteration) UpdateImprovementLevel();
         }
