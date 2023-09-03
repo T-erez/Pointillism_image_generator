@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net.Mime;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,11 +16,12 @@ namespace Pointillism_image_generator
     public sealed partial class Form1 : Form
     {
         private PointillismImageGeneratorParallel? _generator;
-        private CancellationTokenSource _tokenSource = new();
+        private CancellationTokenSource _tokenSource;
         private string _imagesPath;
-        private string _imageName;
+        private string _imageName = null!;
         private int _imagesToSave = 5;
-        private List<int> _trackBarIndexToPatternsCount;
+        private List<int> _trackBarIndexToPatternsCount = null!;
+        private IntReference _patternsToAdd;
 
         private const int GripSize = 16;
         private readonly int _captionBarHeight;
@@ -27,49 +30,68 @@ namespace Pointillism_image_generator
         public Form1()
         {
             InitializeComponent();
-            CheckForIllegalCrossThreadCalls = false;
+            
+            // directory
+            string? exePath = Path.GetDirectoryName(Application.ExecutablePath);
+            _imagesPath = Path.Combine(exePath!, "images");
+            Directory.CreateDirectory(_imagesPath);
+            
+            // form
             FormBorderStyle = FormBorderStyle.None;
             DoubleBuffered = true;
             SetStyle(ControlStyles.ResizeRedraw, true);
             _captionBarHeight = btnClose.Height;
 
+            // combo box
             for (int item = 7; item <= 23; item += 2)
             {
                 comboBoxPatternSize.Items.Add(item);
             }
             comboBoxPatternSize.SelectedItem = 7;
 
-            string? exePath = Path.GetDirectoryName(Application.ExecutablePath);
-            _imagesPath = Path.Combine(exePath!, "images");
-            Directory.CreateDirectory(_imagesPath);
-
+            // buttons
             btnStart.Enabled = false;
             btnBackgroundColor.BackColor = Color.White;
             btnAdd.Enabled = false;
             btnCancel.Enabled = false;
             btnSave.Enabled = false;
+            
+            // file dialogs
             saveFileDialog.Filter = "Image File(*.JPG)|*.jpg|Image File(*.PNG)|*.png|Image File (*.BMP)|*.bmp";
             openFileDialog.Filter = "Image Files(*.JPG;*.PNG,*.BMP)|*.JPG;*.PNG;*.BMP|All files (*.*)|*.*";
 
+            // trackbar
             trackBar.Maximum = -1;
-            trackBar.Enabled = true;
 
+            // progressBar
             progressBar.Visible = false;
+            progressBar.Maximum = 100; // percent
+            backgroundWorkerProgressBar.WorkerReportsProgress = true;
+            
+            // labels
+            labelCanNotBeImproved.Visible = false;
+            labelCanNotBeImproved.Text = "Generated image can not be improved.";
+            labelInit.Visible = false;
+            labelInit.Text = "Initialization... it may take a while.";
         }
 
-        /// <summary> Loads original image. Enables Start button. Disables Add button. </summary>
+        #region SETUP
+
+        /// <summary> Loads original image. Enables Start button. Disables Add and Save buttons. </summary>
         private void btnLoad_Click(object sender, EventArgs e)
         {
             var image = LoadImage(out var filePath);
             if (image is null)
                 return;
+            
             pbxOriginalImage.Image = image;
-            pbxOutputImage.Image = null;
-            labelNumberOfPatterns.Text = 0.ToString();
             _imageName = Path.GetFileName(filePath!);
+            pbxOutputImage.Image = null;
+            labelCanNotBeImproved.Visible = false;
+            labelNumberOfPatterns.Text = 0.ToString();
 
-            btnStart.Enabled = true;
             btnStart.Text = "Start";
+            btnStart.Enabled = true;
             checkBoxProgress.Checked = false;
             btnAdd.Enabled = false;
             btnSave.Enabled = false;
@@ -97,22 +119,14 @@ namespace Pointillism_image_generator
                 return null;
             }
         }
-
-        /// <summary> Saves generated image. </summary>
-        private void btnSave_Click(object sender, EventArgs e)
+        
+        /// <summary>Sets background color of the generated image.</summary>
+        private void btnBackgroundColor_Click(object sender, EventArgs e)
         {
-            Image outputImage = pbxOutputImage.Image;
-            if (outputImage is null)
+            if (backgroundColorDialog.ShowDialog() == DialogResult.OK)
             {
-                MessageBox.Show("Error. First generate an output image.");
-                return;
-            }
-
-            saveFileDialog.FileName = $"pointillism_{_imageName}";
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                pbxOutputImage.Image.Save(saveFileDialog.FileName);
+                btnBackgroundColor.BackColor = backgroundColorDialog.Color;
+                btnBackgroundColor.ForeColor = backgroundColorDialog.Color.GetBrightness() > 0.5 ? Color.Black : Color.White;
             }
         }
 
@@ -126,19 +140,30 @@ namespace Pointillism_image_generator
             }
 
             btnStart.Text = "Restart";
-            labelProgress.Text = "Initialization... it may take a while.";
-            labelProgress.Refresh();
+            labelInit.Visible = true;
+            labelInit.Refresh();
             trackBar.Maximum = -1;
             _trackBarIndexToPatternsCount = new();
             
             int patternSize = int.Parse(comboBoxPatternSize.SelectedItem.ToString()!);
             _generator?.Dispose();
             _generator = new PointillismImageGeneratorParallel(pbxOriginalImage.Image, patternSize, btnBackgroundColor.BackColor);
-            labelProgress.Text = "";
+            labelInit.Visible = false;
             AddPatterns(100);
             
-            btnAdd.Enabled = true;
             btnSave.Enabled = true;
+        }
+
+        #endregion
+
+
+        #region ADD_PATTERNS
+        
+        /// <summary> Adds patterns to the generated image. </summary>
+        private void btnAdd_Click(object sender, EventArgs e)
+        {
+            int patternsCount = (int)numericUpDown.Value;
+            AddPatterns(patternsCount);
         }
 
         /// <summary> Adds patterns to the generated image. </summary>
@@ -147,87 +172,89 @@ namespace Pointillism_image_generator
         {
             btnAdd.Enabled = false;
             checkBoxProgress.Enabled = false;
-            progressBar.Maximum = patternsCount;
             progressBar.Visible = true;
+            btnCancel.Enabled = true;
 
-            IntReference patternsToAdd = patternsCount.ToIntReference();
+            _patternsToAdd = patternsCount.ToIntReference();
             _tokenSource = new CancellationTokenSource();
+
+            backgroundWorkerAddPatterns.RunWorkerAsync();
+            backgroundWorkerProgressBar.RunWorkerAsync(patternsCount);
+        }
+        
+        /// <summary>Calls the generator and saves generated images.</summary>
+        private void backgroundWorkerAddPatterns_DoWork(object sender, DoWorkEventArgs e)
+        {
+            int imagesToSave = checkBoxProgress.Checked ? _imagesToSave : 0;
+            var (canBeImproved, generatedBitmaps) = _generator!.AddPatterns(_patternsToAdd, imagesToSave, _tokenSource.Token);
             
-            Task.Run(() =>
-            {
-                btnCancel.Enabled = true;
-                int imagesToSave = checkBoxProgress.Checked ? _imagesToSave : 0;
-                var (canBeImproved, generatedBitmaps) = _generator!.AddPatterns(patternsToAdd, imagesToSave, _tokenSource.Token);
-                btnCancel.Enabled = false;
-                UpdateTrackBar(generatedBitmaps);
-                if (!canBeImproved)
-                    labelProgress.Text = "Generated image can not be improved.";
-                else
-                {
-                    btnAdd.Enabled = true;
-                    checkBoxProgress.Enabled = true;
-                }
-            }, _tokenSource.Token);
-
-            Task.Run(() => UpdateProgressBar(patternsCount, patternsToAdd), _tokenSource.Token);
-        }
-
-        /// <summary>
-        /// Updates progress bar during generation of image.
-        /// </summary>
-        /// <param name="patternsTotal">total number of patterns to add</param>
-        /// <param name="patternsLeft">number of patterns left to add</param>
-        private void UpdateProgressBar(int patternsTotal, IntReference patternsLeft)
-        {
-            while (patternsLeft.Value > 0 && !_tokenSource.Token.IsCancellationRequested)
-            {
-                progressBar.Value = patternsTotal - patternsLeft.Value;
-                Thread.Sleep(100);
-            }
-            progressBar.Visible = false;
-            progressBar.Value = 0;
-        }
-
-        /// <summary>
-        /// Saves generated bitmaps, sets trackbar value to its maximum and updates picture box with generated image.
-        /// </summary>
-        /// <param name="generatedBitmaps"></param>
-        private void UpdateTrackBar(IList<GeneratedBitmap> generatedBitmaps)
-        {
             foreach (var generatedBitmap in generatedBitmaps)
             {
                 generatedBitmap.Bitmap.Save(Path.Combine(_imagesPath, Convert.ToString(generatedBitmap.PatternsCount) + ".jpg"));
                 _trackBarIndexToPatternsCount.Add(generatedBitmap.PatternsCount);
             }
-            trackBar.Maximum += generatedBitmaps.Count;
-            trackBar.Minimum = 0;
-            trackBar.Value = trackBar.Maximum;
-            UpdatePbx(generatedBitmaps[^1].Bitmap, generatedBitmaps[^1].PatternsCount);
+
+            e.Result = new ResultObject {CanBeImproved = canBeImproved, GeneratedBitmapsCount = generatedBitmaps.Count};
         }
 
-        /// <summary> Updates generated image in the picture box. </summary>
-        /// <param name="image">image to display</param>
-        /// <param name="patternsCount">number of patterns in the image</param>
-        private void UpdatePbx(Image image, int patternsCount)
+        /// <summary>Updates the track bar and other controls.</summary>
+        /// <exception cref="ArgumentException">Exception is thrown if no valid result is set.</exception>
+        private void backgroundWorkerAddPatterns_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            pbxOutputImage.Image = image;
-            labelNumberOfPatterns.Text = Convert.ToString(patternsCount);
+            ResultObject result = (ResultObject) (e.Result ?? throw new ArgumentException());
+            UpdateTrackBar(result.GeneratedBitmapsCount);
+            btnCancel.Enabled = false;
+            if (!result.CanBeImproved)
+            {
+                _patternsToAdd.Value = 0;
+                labelCanNotBeImproved.Visible = true;
+            }
+            else
+            {
+                btnAdd.Enabled = true;
+                checkBoxProgress.Enabled = true;
+            }
+        }
+        
+        /// <summary>
+        /// Result of background worker for adding patterns.
+        /// </summary>
+        private record struct ResultObject
+        {
+            public bool CanBeImproved;
+            public int GeneratedBitmapsCount;
+        }
+        
+        /// <summary>Updates the percentage of progress during image generation.</summary>
+        /// <exception cref="ArgumentException">Exception is thrown if no valid argument is passed.</exception>
+        private void backgroundWorkerProgressBar_DoWork(object sender, DoWorkEventArgs e)
+        {
+            BackgroundWorker worker = (sender as BackgroundWorker)!;
+            int patternsTotal = (int) (e.Argument ?? throw new ArgumentException());
+            while (_patternsToAdd.Value > 0 && !_tokenSource.Token.IsCancellationRequested)
+            {
+                worker.ReportProgress((int) ((patternsTotal - _patternsToAdd.Value) / (double) patternsTotal * 100));
+                Thread.Sleep(100);
+            }
+        }
+        
+        /// <summary>Sets progress bar value to the percentage of progress.</summary>
+        private void backgroundWorkerProgressBar_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar.Value = e.ProgressPercentage;
         }
 
-        /// <summary> Adds patterns to the generated image. </summary>
-        private void btnAdd_Click(object sender, EventArgs e)
+        /// <summary>Makes progress bar invisible.</summary>
+        private void backgroundWorkerProgressBar_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            int patternsCount = (int)numericUpDown.Value;
-            AddPatterns(patternsCount);
+            progressBar.Visible = false;
+            progressBar.Value = 0;
         }
 
-        /// <summary>Changes the generated image displayed in the picture box. </summary>
-        private void trackBar_Scroll(object sender, EventArgs e)
-        {
-            int patternsCount = _trackBarIndexToPatternsCount[trackBar.Value];
-            string file = Convert.ToString(patternsCount) + ".jpg";
-            UpdatePbx(Image.FromFile(Path.Combine(_imagesPath, file)), patternsCount);
-        }
+        #endregion
+
+
+        #region CANCEL
 
         /// <summary>Cancels adding patterns.</summary>
         private void btnCancel_Click(object sender, EventArgs e)
@@ -236,44 +263,90 @@ namespace Pointillism_image_generator
             btnCancel.Enabled = false;
         }
 
-        /// <summary>Sets background color of the generated image.</summary>
-        private void btnBackgroundColor_Click(object sender, EventArgs e)
+        #endregion
+
+        
+        #region GENERATED_IMAGE
+        
+        /// <summary>Changes the displayed image in the picture box for generated images. </summary>
+        private void trackBar_Scroll(object sender, EventArgs e)
         {
-            if (backgroundColorDialog.ShowDialog() == DialogResult.OK)
-                btnBackgroundColor.BackColor = backgroundColorDialog.Color;
+            UpdatePbx();
         }
         
-        protected override void OnPaint(PaintEventArgs e) {
-            Rectangle rectangle = new Rectangle(ClientSize.Width - GripSize, ClientSize.Height - GripSize, GripSize, GripSize);
-            ControlPaint.DrawSizeGrip(e.Graphics, BackColor, rectangle);
+        /// <summary>
+        /// Increments trackbar maximum, sets trackbar value to its maximum and updates picture box.
+        /// </summary>
+        /// <param name="countAdded"></param>
+        private void UpdateTrackBar(int countAdded)
+        {
+            trackBar.Maximum += countAdded;
+            trackBar.Minimum = 0;
+            trackBar.Value = trackBar.Maximum;
+            UpdatePbx();
         }
 
-        protected override void WndProc(ref Message m) {
-            if (m.Msg == 0x84) {  // Trap WM_NCHITTEST
-                Point pos = new Point(m.LParam.ToInt32());
-                pos = PointToClient(pos);
-                if (pos.Y < _captionBarHeight) {
-                    m.Result = (IntPtr)2;  // HTCAPTION
-                    return;
-                }
-                if (pos.X >= ClientSize.Width - GripSize && pos.Y >= ClientSize.Height - GripSize) {
-                    m.Result = (IntPtr)17; // HTBOTTOMRIGHT
-                    return;
-                }
+        /// <summary> Updates the displayed image in the picture box for generated images based on the trackbar value. </summary>
+        private void UpdatePbx()
+        {
+            int patternsCount = _trackBarIndexToPatternsCount[trackBar.Value];
+            string file = Convert.ToString(patternsCount) + ".jpg";
+            var image = Image.FromFile(Path.Combine(_imagesPath, file));
+            pbxOutputImage.Image = image;
+            labelNumberOfPatterns.Text = Convert.ToString(patternsCount);
+        }
+
+        /// <summary> Saves displayed generated image. </summary>
+        private void btnSave_Click(object sender, EventArgs e)
+        {
+            Image outputImage = pbxOutputImage.Image;
+            if (outputImage is null)
+            {
+                MessageBox.Show("Error. First generate an output image.");
+                return;
             }
-            base.WndProc(ref m);
+
+            saveFileDialog.FileName = $"pointillism_{_imageName}_{labelNumberOfPatterns.Text}";
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                pbxOutputImage.Image.Save(saveFileDialog.FileName);
+            }
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        #endregion
+
+        
+        // protected override void OnPaint(PaintEventArgs e) {
+        //     Rectangle rectangle = new Rectangle(ClientSize.Width - GripSize, ClientSize.Height - GripSize, GripSize, GripSize);
+        //     ControlPaint.DrawSizeGrip(e.Graphics, BackColor, rectangle);
+        // }
+        //
+        // protected override void WndProc(ref Message m) {
+        //     if (m.Msg == 0x84) {  // Trap WM_NCHITTEST
+        //         Point pos = new Point(m.LParam.ToInt32());
+        //         pos = PointToClient(pos);
+        //         if (pos.Y < _captionBarHeight) {
+        //             m.Result = (IntPtr)2;  // HTCAPTION
+        //             return;
+        //         }
+        //         if (pos.X >= ClientSize.Width - GripSize && pos.Y >= ClientSize.Height - GripSize) {
+        //             m.Result = (IntPtr)17; // HTBOTTOMRIGHT
+        //             return;
+        //         }
+        //     }
+        //     base.WndProc(ref m);
+        // }
+
+        #region FORM
+
+        /// <summary>Minimizes form.</summary>
+        private void btnMinimize_Click(object sender, EventArgs e)
         {
-            Directory.Delete(_imagesPath, true);
+            WindowState = FormWindowState.Minimized;
         }
-
-        private void btnClose_Click(object sender, EventArgs e)
-        {
-            Close();
-        }
-
+        
+        /// <summary>Maximizes form.</summary>
         private void btnMaximize_Click(object sender, EventArgs e)
         {
             if (WindowState != FormWindowState.Maximized)
@@ -281,10 +354,18 @@ namespace Pointillism_image_generator
             else
                 WindowState = FormWindowState.Normal;
         }
-
-        private void btnMinimize_Click(object sender, EventArgs e)
+        
+        /// <summary>Closes form.</summary>
+        private void btnClose_Click(object sender, EventArgs e)
         {
-            WindowState = FormWindowState.Minimized;
+            Close();
         }
+        
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            //Directory.Delete(_imagesPath, true);
+        }
+        
+        #endregion
     }
 }

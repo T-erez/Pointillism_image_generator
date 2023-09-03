@@ -47,7 +47,7 @@ namespace Pointillism_image_generator
             this.numericUpDown = new System.Windows.Forms.NumericUpDown();
             this.checkBoxProgress = new System.Windows.Forms.CheckBox();
             this.progressBar = new System.Windows.Forms.ProgressBar();
-            this.labelProgress = new System.Windows.Forms.Label();
+            this.labelInit = new System.Windows.Forms.Label();
             this.btnCancel = new System.Windows.Forms.Button();
             this.btnBackgroundColor = new System.Windows.Forms.Button();
             this.backgroundColorDialog = new System.Windows.Forms.ColorDialog();
@@ -66,9 +66,12 @@ namespace Pointillism_image_generator
             this.panelHeadline3 = new System.Windows.Forms.Panel();
             this.labelCancle = new System.Windows.Forms.Label();
             this.panelGeneratedImage = new System.Windows.Forms.Panel();
+            this.labelCanNotBeImproved = new System.Windows.Forms.Label();
             this.panelHeadline4 = new System.Windows.Forms.Panel();
             this.labelResult = new System.Windows.Forms.Label();
             this.labelTitleBar = new System.Windows.Forms.Label();
+            this.backgroundWorkerProgressBar = new System.ComponentModel.BackgroundWorker();
+            this.backgroundWorkerAddPatterns = new System.ComponentModel.BackgroundWorker();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).BeginInit();
@@ -291,14 +294,14 @@ namespace Pointillism_image_generator
             this.progressBar.Step = 1;
             this.progressBar.TabIndex = 21;
             // 
-            // labelProgress
+            // labelInit
             // 
-            this.labelProgress.AutoSize = true;
-            this.labelProgress.Location = new System.Drawing.Point(179, 400);
-            this.labelProgress.Name = "labelProgress";
-            this.labelProgress.Size = new System.Drawing.Size(0, 21);
-            this.labelProgress.TabIndex = 22;
-            this.labelProgress.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.labelInit.AutoSize = true;
+            this.labelInit.Location = new System.Drawing.Point(179, 400);
+            this.labelInit.Name = "labelInit";
+            this.labelInit.Size = new System.Drawing.Size(0, 21);
+            this.labelInit.TabIndex = 22;
+            this.labelInit.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // btnCancel
             // 
@@ -487,7 +490,8 @@ namespace Pointillism_image_generator
             // panelGeneratedImage
             // 
             this.panelGeneratedImage.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(250)))), ((int)(((byte)(243)))), ((int)(((byte)(221)))));
-            this.panelGeneratedImage.Controls.Add(this.labelProgress);
+            this.panelGeneratedImage.Controls.Add(this.labelCanNotBeImproved);
+            this.panelGeneratedImage.Controls.Add(this.labelInit);
             this.panelGeneratedImage.Controls.Add(this.panelHeadline4);
             this.panelGeneratedImage.Controls.Add(this.labelNumberOfPatterns);
             this.panelGeneratedImage.Controls.Add(this.btnSave);
@@ -501,6 +505,18 @@ namespace Pointillism_image_generator
             this.panelGeneratedImage.Name = "panelGeneratedImage";
             this.panelGeneratedImage.Size = new System.Drawing.Size(617, 543);
             this.panelGeneratedImage.TabIndex = 31;
+            // 
+            // labelCanNotBeImproved
+            // 
+            this.labelCanNotBeImproved.AutoSize = true;
+            this.labelCanNotBeImproved.BackColor = System.Drawing.Color.Transparent;
+            this.labelCanNotBeImproved.Location = new System.Drawing.Point(137, 396);
+            this.labelCanNotBeImproved.Name = "labelCanNotBeImproved";
+            this.labelCanNotBeImproved.Size = new System.Drawing.Size(350, 21);
+            this.labelCanNotBeImproved.TabIndex = 23;
+            this.labelCanNotBeImproved.Text = "Generated image can not be improved.";
+            this.labelCanNotBeImproved.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            this.labelCanNotBeImproved.Visible = false;
             // 
             // panelHeadline4
             // 
@@ -532,6 +548,17 @@ namespace Pointillism_image_generator
             this.labelTitleBar.Size = new System.Drawing.Size(236, 21);
             this.labelTitleBar.TabIndex = 32;
             this.labelTitleBar.Text = "Pointillism Image Generator";
+            // 
+            // backgroundWorkerProgressBar
+            // 
+            this.backgroundWorkerProgressBar.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerProgressBar_DoWork);
+            this.backgroundWorkerProgressBar.ProgressChanged += new System.ComponentModel.ProgressChangedEventHandler(this.backgroundWorkerProgressBar_ProgressChanged);
+            this.backgroundWorkerProgressBar.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerProgressBar_RunWorkerCompleted);
+            // 
+            // backgroundWorkerAddPatterns
+            // 
+            this.backgroundWorkerAddPatterns.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerAddPatterns_DoWork);
+            this.backgroundWorkerAddPatterns.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerAddPatterns_RunWorkerCompleted);
             // 
             // Form1
             // 
@@ -597,7 +624,7 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.NumericUpDown numericUpDown;
         private System.Windows.Forms.CheckBox checkBoxProgress;
         private System.Windows.Forms.ProgressBar progressBar;
-        private System.Windows.Forms.Label labelProgress;
+        private System.Windows.Forms.Label labelInit;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.Button btnBackgroundColor;
         private System.Windows.Forms.ColorDialog backgroundColorDialog;
@@ -619,6 +646,9 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.Panel panelHeadline4;
         private System.Windows.Forms.Label labelResult;
         private System.Windows.Forms.Label labelTitleBar;
+        private System.Windows.Forms.Label labelCanNotBeImproved;
+        private System.ComponentModel.BackgroundWorker backgroundWorkerProgressBar;
+        private System.ComponentModel.BackgroundWorker backgroundWorkerAddPatterns;
     }
 }
 
