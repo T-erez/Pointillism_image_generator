@@ -39,8 +39,6 @@ public struct PatternWithImprovement : IComparable<PatternWithImprovement>, IUpd
     /// Improvement of the generated image after pattern is added.
     /// </summary>
     public int Improvement;
-    /// The value backgroundContribution is not used in other parts of the program, but it could be used to cover the background first.
-    //public readonly int BackgroundContribution; //number of background pixels in the generated image covered by pattern
     public readonly Error Error;
     public Point Id => SquarePattern.Centre;
 
@@ -61,16 +59,6 @@ public struct PatternWithImprovement : IComparable<PatternWithImprovement>, IUpd
 
     public int CompareTo(PatternWithImprovement other)
     {
-        // int higherPriority = BackgroundContribution.CompareTo(otherNode.BackgroundContribution);
-        // switch (higherPriority)
-        // {
-        //     case -1:
-        //         return -1;
-        //     case 0:
-        //         return Improvement.CompareTo(otherNode.Improvement);
-        //     default:
-        //         return 1;
-        // }
         return Improvement.CompareTo(other.Improvement);
     }
 }
