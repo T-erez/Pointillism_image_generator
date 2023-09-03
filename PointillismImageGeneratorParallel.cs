@@ -38,6 +38,8 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
         _improvementLevel = maxImprovement - _improvementLevelStep;
         
         _subimageSize = Math.Max(originalImage.Width / SubimagesPerOneDimension, originalImage.Height / SubimagesPerOneDimension);
+        if (_subimageSize < WindowSize)
+            _subimageSize = WindowSize;
         InitializePatterns();
     }
     
