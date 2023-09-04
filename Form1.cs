@@ -16,16 +16,12 @@ namespace Pointillism_image_generator
     public sealed partial class Form1 : Form
     {
         private PointillismImageGeneratorParallel? _generator;
-        private CancellationTokenSource _tokenSource;
+        private CancellationTokenSource _tokenSource = null!;
         private string _imagesPath;
         private string _imageName = null!;
         private int _imagesToSave = 5;
         private List<int> _trackBarIndexToPatternsCount = null!;
-        private IntReference _patternsToAdd;
-
-        private const int GripSize = 16;
-        private readonly int _captionBarHeight;
-         
+        private IntReference _patternsToAdd = null!;
         
         public Form1()
         {
@@ -33,14 +29,13 @@ namespace Pointillism_image_generator
             
             // directory
             string? exePath = Path.GetDirectoryName(Application.ExecutablePath);
-            _imagesPath = Path.Combine(exePath!, "images");
+            _imagesPath = Path.Combine(exePath!, "working-directory-images");
             Directory.CreateDirectory(_imagesPath);
             
             // form
             FormBorderStyle = FormBorderStyle.None;
             DoubleBuffered = true;
             SetStyle(ControlStyles.ResizeRedraw, true);
-            _captionBarHeight = btnClose.Height;
 
             // combo box
             for (int item = 7; item <= 23; item += 2)
@@ -316,28 +311,6 @@ namespace Pointillism_image_generator
 
         #endregion
 
-        
-        // protected override void OnPaint(PaintEventArgs e) {
-        //     Rectangle rectangle = new Rectangle(ClientSize.Width - GripSize, ClientSize.Height - GripSize, GripSize, GripSize);
-        //     ControlPaint.DrawSizeGrip(e.Graphics, BackColor, rectangle);
-        // }
-        //
-        // protected override void WndProc(ref Message m) {
-        //     if (m.Msg == 0x84) {  // Trap WM_NCHITTEST
-        //         Point pos = new Point(m.LParam.ToInt32());
-        //         pos = PointToClient(pos);
-        //         if (pos.Y < _captionBarHeight) {
-        //             m.Result = (IntPtr)2;  // HTCAPTION
-        //             return;
-        //         }
-        //         if (pos.X >= ClientSize.Width - GripSize && pos.Y >= ClientSize.Height - GripSize) {
-        //             m.Result = (IntPtr)17; // HTBOTTOMRIGHT
-        //             return;
-        //         }
-        //     }
-        //     base.WndProc(ref m);
-        // }
-
         #region FORM
 
         /// <summary>Minimizes form.</summary>
@@ -363,7 +336,7 @@ namespace Pointillism_image_generator
         
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            //Directory.Delete(_imagesPath, true);
+            Directory.Delete(_imagesPath, true);
         }
         
         #endregion
