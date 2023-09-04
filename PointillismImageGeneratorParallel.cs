@@ -55,7 +55,7 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
             (indicesPerColumn - 1) * PixelMultiple + 1);
         int patternsPerRow = DivideRoundingUp(_subimageSize, PixelMultiple);
         int patternsPerSubimage = patternsPerRow * patternsPerRow;
-        _subimages = new Subimages(patternsRegion, _subimageSize, WindowSize, patternsPerSubimage);
+        _subimages = new Subimages(patternsRegion, _subimageSize, patternsPerSubimage);
         Parallel.For(0, indicesPerRow * indicesPerColumn, i =>
         {
             Point centre = new Point(HalfWindowSize + (i % indicesPerRow) * PixelMultiple,

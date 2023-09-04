@@ -25,14 +25,10 @@ internal class Subimages
     /// </summary>
     /// <param name="region">region of an image for which subimages are to be created</param>
     /// <param name="subimageSize">width of subimage, subimage is a square</param>
-    /// <param name="windowSize">window size of a pattern</param>
     /// <param name="patternsPerSubimage">maximum number of patterns in each subimage</param>
     /// <exception cref="ArgumentException">Exception is thrown when subimage size is smaller than window size.</exception>
-    public Subimages(Rectangle region, int subimageSize, int windowSize, int patternsPerSubimage)
+    public Subimages(Rectangle region, int subimageSize, int patternsPerSubimage)
     {
-        if (subimageSize < windowSize)
-            throw new ArgumentException();
-        
         _region = region;
         _subimageSize = subimageSize;
         _subimagesPerRow = DivideRoundingUp(region.Width, subimageSize);
