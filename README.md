@@ -1,18 +1,23 @@
-# Pointillism_image_generator
-
+# Pointillism
 First things first, the main source for this project is paper by Hiroki Tokura, Yuki Kuroda, Yasuaki Ito, and Koji Nakano from Hiroshima University. The paper can be found here: https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwijn8-3i_j5AhVO6qQKHQPzDxsQFnoECAkQAQ&url=https%3A%2F%2Fwww.cs.hiroshima-u.ac.jp%2Fcs%2F_media%2Fcandar17_pointilism.pdf&usg=AOvVaw2gcvkMONkN1JjwVYe-icVg
 
 Pointillism is a technique of painting, where small dots of color are put on canvas. These dots are distinct and altogether create the pointillistic image. This technique was developed in 1886 by Georges Seurat and Paul Signac.
 
-# 
+![Paul_Signac_Femmes_au_puits_1892détailcouleur](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/125eea41-9ec6-40d1-b303-2a67723607c7)
+
 Femmes au puits, by Paul Signac, 1892. Shows a detail of an image. (https://commons.wikimedia.org/w/index.php?curid=5950432)
+
+# Pointillism image generator
 
 This program aims to generate a digital version of pointillistic image from any input image. Different patterns could be used, such as dots, ellipses, or squares. This program uses square patterns, which can be rotated about centre for 30 or 60 degrees. The size of the patterns is chosen by the user, supported sizes range from 7 to 23 pixels. 
 
 The appearance of the resulting image depends on:
 - The size of patterns. Because of the algorithm, details in the input image, which are smaller than a single pattern, cannot be reproduced well. Therefore, the larger the patterns, the more abstract and blurred the image.
 - The number of patterns. Generator adds patterns only if it improves the generated image (see below what exactly the improvement value means). The more patterns, the more precise the generated image.
-- The background color. Generator first adds patterns that contrast more with the background color. The background color is usually visible in the generated image. 
+- The background color. Generator first adds patterns that contrast more with the background color. The background color is usually visible in the generated image.
+
+# Snapshots of pasting patterns
+![progress](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/6d383608-0597-4e65-bad4-ebd7610a4dcd)
 
 # Serial algorithm
 
@@ -28,8 +33,6 @@ Algorithm ends after no improvement is possible, that is when the best of best p
 
 *In this implementation, the best pattern is only found for every 4th index - it reduces memory requirements and improves performance while maintaining accuracy.
 
-#
-
 # Parallel algorithm
 In the above serial algorithm, patterns are pasted one by one. For adding multiple patterns at once, there is a non-deterministic parallel algorithm. To add multiple patterns, the input
 image $A$ of size $N$ x $N$ is split into subimages of size $h$ x $h$. The subimages are divided into four groups such that:
@@ -41,7 +44,7 @@ image $A$ of size $N$ x $N$ is split into subimages of size $h$ x $h$. The subim
 For parallel execution, the subimage has to be equal to or greater than the affected region.
 
 The disadvantage of this approach is that a generated image after approximately 40000 pasted squares may look like this:
-#
+![without_improvementLevel](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/5227f915-66f4-48bd-9020-0e1c67deed19)
 
 The borders of subimages are visible and the image looks unevenly generated. This does not matter if the goal is to cover background as much as possible. 
 But sometimes it looks nice when there is only an outline of the main object and a lot of background is visible.
@@ -49,7 +52,8 @@ To eliminate this problem and to make the parallel algorithm look more similar t
 This causes that patterns added at the same time have a similar color or contrast similarly with the background.
 
 The generated image (with about 40000 pasted squares) after introducing lowest allowed improvement: 
-#
+![with_improvementLevel](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/056b9272-1146-4614-aedd-02973e056b9e)
+
 
 # Data structures
 A pattern with the greatest improvement has to be found quickly. Therefore, as a data structure for patterns, max heap is used. 
@@ -70,7 +74,8 @@ Structure ``PatternWithImprovement`` represents a pattern, its error and improve
 In the setup, $Load$ an image, select a size of patterns and set background color. Then press $Start$ button to initialize the generator and to add first 100 patterns. You can $Add$ more patterns by clicking a button. Adding patterns can be cancelled by $Cancel$ button. If you have checked $Save$ $progress$, 5 images during generation will be saved. Use track bar to view generated images. Any currently displayed image you can $Save$.
 
 To try different pattern size or background color, simply change them in setup and click $Restart$. 
-#
+![new_design_III](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/a32eac94-1bbb-4539-bae7-cf1e82d6b8e2)
+
 
 # Speed stats
 Experimental speed are:
@@ -83,22 +88,36 @@ Experimental speed are:
 The larger the images, the longer the initialization. The larger the patterns, the longer the image generation.
 
 # Results
-#
-Input image: Golden Tears by Gustav Klimt (570x761). (https://mucha-alphonse.eu/en/long/353-golden-tears.html)
 
-Size of patterns: 11. 
-The first one. Number of patterns: 10118. Background color: yellow.
-The second one. Number of patterns: 5712. Background color: rgb(250, 231, 189).
+All results are generated by ``PointillismImageGeneratorParallel``.
 
-#
-Input image: Autumn park (2560x1600) (https://www.10wallpaper.com/view/Autumn_park_foliage_benches_trees-2016_Scenery_HD_Wallpaper.html)
+- Input image: Golden Tears by Gustav Klimt (570x761). (https://mucha-alphonse.eu/en/long/353-golden-tears.html)
+
+Size of patterns: 11. Number of patterns: 10118. Background color: yellow.
+![10118](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/2681b564-85c2-48c7-8604-d1413aa778ba)
+
+Size of patterns: 11. Number of patterns: 5712. Background color: rgb(250, 231, 189).
+![5712](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/b97b233a-c4b2-4b35-8c4c-76c9a836e0ed)
+
+
+- Input image: Autumn park (2560x1600) (https://www.10wallpaper.com/view/Autumn_park_foliage_benches_trees-2016_Scenery_HD_Wallpaper.html)
 
 Size of patterns: 11. Number of patterns: 170156. Background color: rgb(250, 231, 189).
+![170156](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/87c19a0d-d9b8-47d1-a2e1-60535b5e077c)
 
-#
-Input image: Two goldfish (612x553). (https://www.freepik.com/premium-photo/two-goldfish-fish-bowl-isolated_8784444.htm) 
+
+-Input image: Two goldfish (612x553). (https://www.freepik.com/premium-photo/two-goldfish-fish-bowl-isolated_8784444.htm) 
 
 Size of patterns: 7. Number of patterns: 23820. Background color: white.
+![23820](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/a361c0c9-9134-460f-82ea-7b39f2fb66fc)
 
-#
-Input image: a friend's cat (1448x1440). Size of patterns: 7. Number of patterns: 45162 and 145302. Background color: rgb(34, 143, 29) or very similar.
+
+- Input image: a friend's cat (1448x1440).
+
+Size of patterns: 7. Number of patterns: 45162. Background color: rgb(34, 143, 29) or very similar.
+![45162](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/671b55ea-374c-43cd-bf8a-f31e16800018)
+
+Size of patterns: 7. Number of patterns: 145302. Background color: rgb(34, 143, 29) or very similar.
+![145302](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/aacb4c5f-1ff0-474e-a49b-286e57c69f81)
+
+
