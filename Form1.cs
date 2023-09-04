@@ -187,6 +187,7 @@ namespace Pointillism_image_generator
             {
                 generatedBitmap.Bitmap.Save(Path.Combine(_imagesPath, Convert.ToString(generatedBitmap.PatternsCount) + ".jpg"));
                 _trackBarIndexToPatternsCount.Add(generatedBitmap.PatternsCount);
+                generatedBitmap.Bitmap.Dispose();
             }
 
             e.Result = new ResultObject {CanBeImproved = canBeImproved, GeneratedBitmapsCount = generatedBitmaps.Count};
@@ -287,6 +288,7 @@ namespace Pointillism_image_generator
             int patternsCount = _trackBarIndexToPatternsCount[trackBar.Value];
             string file = Convert.ToString(patternsCount) + ".jpg";
             var image = Image.FromFile(Path.Combine(_imagesPath, file));
+            pbxOutputImage.Image?.Dispose();
             pbxOutputImage.Image = image;
             labelNumberOfPatterns.Text = Convert.ToString(patternsCount);
         }
@@ -336,6 +338,12 @@ namespace Pointillism_image_generator
         
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            _generator?.Dispose();
+            backgroundWorkerAddPatterns.Dispose();
+            backgroundWorkerProgressBar.Dispose();
+            pbxOriginalImage.Dispose();
+            pbxOutputImage.Image?.Dispose();
+            pbxOutputImage.Dispose();
             Directory.Delete(_imagesPath, true);
         }
         
