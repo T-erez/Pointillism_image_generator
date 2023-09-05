@@ -23,6 +23,12 @@ namespace Pointillism_image_generator
         private List<int> _trackBarIndexToPatternsCount = null!;
         private IntReference _patternsToAdd = null!;
         
+        private const int GripSize = 16;
+        private readonly int _captionBarHeight;
+        private readonly Rectangle _originalFormSize;
+        private readonly (Control, Rectangle)[] _originalSizesAndLocations;
+        private readonly (Control, Point)[] _originalLocations;
+        
         public Form1()
         {
             InitializeComponent();
@@ -36,6 +42,39 @@ namespace Pointillism_image_generator
             FormBorderStyle = FormBorderStyle.None;
             DoubleBuffered = true;
             SetStyle(ControlStyles.ResizeRedraw, true);
+            _captionBarHeight = btnClose.Height;
+            _originalFormSize = new Rectangle(Location, Size);
+            _originalSizesAndLocations = new (Control, Rectangle)[]
+            {
+                (panelSettings, new Rectangle(panelSettings.Location, panelSettings.Size)), 
+                (panelAddPatterns, new Rectangle(panelAddPatterns.Location, panelAddPatterns.Size)),
+                (panelCancle, new Rectangle(panelCancle.Location, panelCancle.Size)), 
+                (panelGeneratedImage, new Rectangle(panelGeneratedImage.Location, panelGeneratedImage.Size)),
+                (pbxOutputImage, new Rectangle(pbxOutputImage.Location, pbxOutputImage.Size)),
+                (pbxOriginalImage, new Rectangle(pbxOriginalImage.Location, pbxOriginalImage.Size)),
+                
+                (btnLoad, new Rectangle(btnLoad.Location, btnLoad.Size)),
+                (comboBoxPatternSize, new Rectangle(comboBoxPatternSize.Location, comboBoxPatternSize.Size)),
+                (btnBackgroundColor, new Rectangle(btnBackgroundColor.Location, btnBackgroundColor.Size)),
+                (btnStart, new Rectangle(btnStart.Location, btnStart.Size)),
+                (btnAdd, new Rectangle(btnAdd.Location, btnAdd.Size)),
+                (numericUpDown, new Rectangle(numericUpDown.Location, numericUpDown.Size)),
+                (btnCancel, new Rectangle(btnCancel.Location, btnCancel.Size)),
+                (progressBar, new Rectangle(progressBar.Location, progressBar.Size)),
+                (trackBar, new Rectangle(trackBar.Location, trackBar.Size)),
+                (btnSave, new Rectangle(btnSave.Location, btnSave.Size))
+            };
+            _originalLocations = new (Control, Point)[]
+            {
+                (labelOriginalImage, labelOriginalImage.Location),
+                (labelOutputImage, labelOutputImage.Location),
+                (labelNumberOfPatterns, labelNumberOfPatterns.Location),
+                (labelInit, labelInit.Location),
+                (labelCanNotBeImproved, labelCanNotBeImproved.Location),
+                (labelPatternSize, labelPatternSize.Location),
+                (checkBoxProgress, checkBoxProgress.Location),
+                (labelScroll, labelScroll.Location)
+            };
 
             // combo box
             for (int item = 7; item <= 23; item += 2)
@@ -287,9 +326,9 @@ namespace Pointillism_image_generator
         {
             int patternsCount = _trackBarIndexToPatternsCount[trackBar.Value];
             string file = Convert.ToString(patternsCount) + ".jpg";
-            var image = Image.FromFile(Path.Combine(_imagesPath, file));
-            pbxOutputImage.Image?.Dispose();
-            pbxOutputImage.Image = image;
+            var image = pbxOutputImage.Image;
+            pbxOutputImage.Image = Image.FromFile(Path.Combine(_imagesPath, file));
+            image?.Dispose();
             labelNumberOfPatterns.Text = Convert.ToString(patternsCount);
         }
 
@@ -315,6 +354,27 @@ namespace Pointillism_image_generator
 
         #region FORM
 
+        protected override void OnPaint(PaintEventArgs e) {
+            Rectangle rectangle = new Rectangle(ClientSize.Width - GripSize, ClientSize.Height - GripSize, GripSize, GripSize);
+            ControlPaint.DrawSizeGrip(e.Graphics, BackColor, rectangle);
+        }
+        
+        protected override void WndProc(ref Message m) {
+            if (m.Msg == 0x84) {  // Trap WM_NCHITTEST
+                Point pos = new Point(m.LParam.ToInt32());
+                pos = PointToClient(pos);
+                if (pos.Y < _captionBarHeight) {
+                    m.Result = (IntPtr)2;  // HTCAPTION
+                    return;
+                }
+                if (pos.X >= ClientSize.Width - GripSize && pos.Y >= ClientSize.Height - GripSize) {
+                    m.Result = (IntPtr)17; // HTBOTTOMRIGHT
+                    return;
+                }
+            }
+            base.WndProc(ref m);
+        }
+
         /// <summary>Minimizes form.</summary>
         private void btnMinimize_Click(object sender, EventArgs e)
         {
@@ -336,14 +396,55 @@ namespace Pointillism_image_generator
             Close();
         }
         
+        /// <summary>Relocates and resizes controls.</summary>
+        private void Form1_Resize(object sender, EventArgs e)
+        {
+            foreach (var (control, original) in _originalSizesAndLocations)
+            {
+                RelocateControl(control, original.Location);
+                ResizeControl(control, original.Size);
+            }
+
+            foreach (var (control, point) in _originalLocations)
+            {
+                RelocateControl(control, point);
+            }
+        }
+
+        /// <summary>Relocates control based on resizing the form.</summary>
+        /// <param name="control">a control to relocate</param>
+        /// <param name="originalLocation">a control's original location</param>
+        private void RelocateControl(Control control, Point originalLocation)
+        {
+            float ratioX = (float) Width / _originalFormSize.Width;
+            float ratioY = (float) (Height - _captionBarHeight) / (_originalFormSize.Height - _captionBarHeight);
+
+            int newX = (int) (originalLocation.X * ratioX);
+            int newY = (int) ((originalLocation.Y - _captionBarHeight)  * ratioY + _captionBarHeight);
+            control.Location = new Point(newX, newY);
+        }
+
+        /// <summary>Resizes control based on resizing the form.</summary>
+        /// <param name="control">a control to resize</param>
+        /// <param name="originalSize">a control's original size</param>
+        private void ResizeControl(Control control, Size originalSize)
+        {
+            float ratioX = (float) Width / _originalFormSize.Width;
+            float ratioY = (float) (Height - _captionBarHeight) / (_originalFormSize.Height - _captionBarHeight);
+
+            int newWidth = (int) (originalSize.Width * ratioX);
+            int newHeight = (int) (originalSize.Height * ratioY);
+            control.Size = new Size(newWidth, newHeight);
+        }
+
+        /// <summary>Disposes images.</summary>
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             _generator?.Dispose();
-            backgroundWorkerAddPatterns.Dispose();
-            backgroundWorkerProgressBar.Dispose();
             pbxOriginalImage.Dispose();
-            pbxOutputImage.Image?.Dispose();
+            var image = pbxOutputImage.Image;
             pbxOutputImage.Dispose();
+            image?.Dispose();
             Directory.Delete(_imagesPath, true);
         }
         

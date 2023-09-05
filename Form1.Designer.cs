@@ -38,7 +38,6 @@ namespace Pointillism_image_generator
             this.labelPatternSize = new System.Windows.Forms.Label();
             this.comboBoxPatternSize = new System.Windows.Forms.ComboBox();
             this.labelOriginalImage = new System.Windows.Forms.Label();
-            this.labelGeneratedImage = new System.Windows.Forms.Label();
             this.labelOutputImage = new System.Windows.Forms.Label();
             this.labelNumberOfPatterns = new System.Windows.Forms.Label();
             this.trackBar = new System.Windows.Forms.TrackBar();
@@ -178,15 +177,6 @@ namespace Pointillism_image_generator
             this.labelOriginalImage.Size = new System.Drawing.Size(129, 21);
             this.labelOriginalImage.TabIndex = 9;
             this.labelOriginalImage.Text = "Original image";
-            // 
-            // labelGeneratedImage
-            // 
-            this.labelGeneratedImage.AutoSize = true;
-            this.labelGeneratedImage.Location = new System.Drawing.Point(426, 440);
-            this.labelGeneratedImage.Name = "labelGeneratedImage";
-            this.labelGeneratedImage.Size = new System.Drawing.Size(161, 21);
-            this.labelGeneratedImage.TabIndex = 10;
-            this.labelGeneratedImage.Text = "Generated image";
             // 
             // labelOutputImage
             // 
@@ -495,7 +485,6 @@ namespace Pointillism_image_generator
             this.panelGeneratedImage.Controls.Add(this.panelHeadline4);
             this.panelGeneratedImage.Controls.Add(this.labelNumberOfPatterns);
             this.panelGeneratedImage.Controls.Add(this.btnSave);
-            this.panelGeneratedImage.Controls.Add(this.labelGeneratedImage);
             this.panelGeneratedImage.Controls.Add(this.labelOutputImage);
             this.panelGeneratedImage.Controls.Add(this.trackBar);
             this.panelGeneratedImage.Controls.Add(this.labelScroll);
@@ -581,6 +570,7 @@ namespace Pointillism_image_generator
             this.Name = "Form1";
             this.Text = "Pointillism Image Generator";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Resize += new System.EventHandler(this.Form1_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).EndInit();
@@ -615,7 +605,6 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.Label labelPatternSize;
         private System.Windows.Forms.ComboBox comboBoxPatternSize;
         private System.Windows.Forms.Label labelOriginalImage;
-        private System.Windows.Forms.Label labelGeneratedImage;
         private System.Windows.Forms.Label labelOutputImage;
         private System.Windows.Forms.Label labelNumberOfPatterns;
         private System.Windows.Forms.TrackBar trackBar;
