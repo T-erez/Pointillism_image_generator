@@ -17,7 +17,7 @@ The appearance of the resulting image depends on:
 - The background color. Generator first adds patterns that contrast more with the background color. The background color is usually visible in the generated image.
 
 # Snapshots of pasting patterns
-![progress](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/6d383608-0597-4e65-bad4-ebd7610a4dcd)
+![progress](https://github.com/T-erez/Pointillism_image_generator/assets/108612296/e772ecb1-9a91-483f-9512-f59ccb4c48b1)
 
 # Serial algorithm
 
