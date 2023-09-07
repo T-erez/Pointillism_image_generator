@@ -71,6 +71,7 @@ namespace Pointillism_image_generator
             this.labelTitleBar = new System.Windows.Forms.Label();
             this.backgroundWorkerProgressBar = new System.ComponentModel.BackgroundWorker();
             this.backgroundWorkerAddPatterns = new System.ComponentModel.BackgroundWorker();
+            this.backgroundWorkerInit = new System.ComponentModel.BackgroundWorker();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOriginalImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbxOutputImage)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trackBar)).BeginInit();
@@ -549,6 +550,11 @@ namespace Pointillism_image_generator
             this.backgroundWorkerAddPatterns.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerAddPatterns_DoWork);
             this.backgroundWorkerAddPatterns.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerAddPatterns_RunWorkerCompleted);
             // 
+            // backgroundWorkerInit
+            // 
+            this.backgroundWorkerInit.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorkerInit_DoWork);
+            this.backgroundWorkerInit.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorkerInit_RunWorkerCompleted);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 21F);
@@ -638,6 +644,7 @@ namespace Pointillism_image_generator
         private System.Windows.Forms.Label labelCanNotBeImproved;
         private System.ComponentModel.BackgroundWorker backgroundWorkerProgressBar;
         private System.ComponentModel.BackgroundWorker backgroundWorkerAddPatterns;
+        private System.ComponentModel.BackgroundWorker backgroundWorkerInit;
     }
 }
 

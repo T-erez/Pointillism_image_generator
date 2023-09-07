@@ -174,17 +174,26 @@ namespace Pointillism_image_generator
             }
 
             btnStart.Text = "Restart";
+            btnStart.Enabled = false;
             labelInit.Visible = true;
             labelInit.Refresh();
             trackBar.Maximum = -1;
             _trackBarIndexToPatternsCount = new();
             
+            backgroundWorkerInit.RunWorkerAsync();
+        }
+        
+        private void backgroundWorkerInit_DoWork(object sender, DoWorkEventArgs e)
+        {
             int patternSize = int.Parse(comboBoxPatternSize.SelectedItem.ToString()!);
             _generator?.Dispose();
             _generator = new PointillismImageGeneratorParallel(pbxOriginalImage.Image, patternSize, btnBackgroundColor.BackColor);
+        }
+
+        private void backgroundWorkerInit_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
             labelInit.Visible = false;
             AddPatterns(100);
-            
             btnSave.Enabled = true;
         }
 
@@ -208,6 +217,7 @@ namespace Pointillism_image_generator
             checkBoxProgress.Enabled = false;
             progressBar.Visible = true;
             btnCancel.Enabled = true;
+            btnStart.Enabled = false;
 
             _patternsToAdd = patternsCount.ToIntReference();
             _tokenSource = new CancellationTokenSource();
@@ -240,6 +250,7 @@ namespace Pointillism_image_generator
             ResultObject result = (ResultObject) (e.Result ?? throw new ArgumentException());
             UpdateTrackBar(result.GeneratedBitmapsCount);
             btnCancel.Enabled = false;
+            btnStart.Enabled = true;
             if (!result.CanBeImproved)
             {
                 _patternsToAdd.Value = 0;
