@@ -46,15 +46,15 @@ namespace Pointillism_image_generator
             }
         }
         
-        public override Task<(bool, IList<GeneratedBitmap>)> AddPatternsAsync(IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
+        public override Task<(bool canBeImproved, List<GeneratedBitmap> generatedBitmaps)> AddPatternsAsync(
+            IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
         {
             if (Disposed)
                 throw new ObjectDisposedException("Can not use disposed generator.");
             int patternsToAdd = patternsToAddShared.Value;
             if (patternsToAdd <= 0 || progressImages < 0) throw new ArgumentOutOfRangeException();
             
-            TaskCompletionSource<(bool, IList<GeneratedBitmap>)> generatedBitmapsPromise = new();
-            ThreadPool.QueueUserWorkItem(_ =>
+            var generatedBitmapsTask = Task.Run( () =>
             {
                 List<GeneratedBitmap> generatedBitmaps = new(progressImages + 1);
                 int step = progressImages == 0 ? patternsToAdd : patternsToAdd / progressImages;
@@ -66,8 +66,7 @@ namespace Pointillism_image_generator
                     if (!AddBestPattern())
                     {
                         generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
-                        generatedBitmapsPromise.SetResult((false, generatedBitmaps));
-                        return;
+                        return(false, generatedBitmaps);
                     }
 
                     --patternsToAdd;
@@ -80,14 +79,11 @@ namespace Pointillism_image_generator
                         nextToSave += step;
                     }
 
-                    if (patternsToAdd <= 0 || token.IsCancellationRequested)
-                    {
-                        generatedBitmapsPromise.SetResult((true, generatedBitmaps));
-                        return;
-                    }
+                    if (patternsToAdd <= 0 || token.IsCancellationRequested) return (true, generatedBitmaps);
                 }
-            });
-            return generatedBitmapsPromise.Task;
+                return (true, generatedBitmaps);
+            }, token);
+            return generatedBitmapsTask;
         }
 
         /// <summary>Takes a pattern with the best improvement and adds it to the generated image. The pattern is

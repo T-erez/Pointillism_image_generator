@@ -68,15 +68,15 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
         });
     }
     
-    public override Task<(bool, IList<GeneratedBitmap>)> AddPatternsAsync(IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
+    public override Task<(bool canBeImproved, List<GeneratedBitmap> generatedBitmaps)> AddPatternsAsync(
+        IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
     {
         if (Disposed)
             throw new ObjectDisposedException("Can not use disposed generator.");
         int patternsToAdd = patternsToAddShared.Value;
         if (patternsToAdd <= 0 || progressImages < 0) throw new ArgumentOutOfRangeException();
 
-        TaskCompletionSource<(bool, IList<GeneratedBitmap>)> generatedBitmapsPromise = new();
-        ThreadPool.QueueUserWorkItem(_ =>
+        var generatedBitmapsTask = Task.Run( () =>
         {
             List<GeneratedBitmap> generatedBitmaps = new(progressImages + 1);
             int step = progressImages == 0 ? patternsToAdd : patternsToAdd / progressImages;
@@ -116,8 +116,7 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
                     }
 
                     if (!token.IsCancellationRequested && patternsToAdd > 0) continue;
-                    generatedBitmapsPromise.SetResult((true, generatedBitmaps));
-                    return;
+                    return (true, generatedBitmaps);
                 }
 
                 #endregion
@@ -125,14 +124,14 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
                 if (_improvementLevel == 0 && patternsAddedInIteration == 0)
                 {
                     generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
-                    generatedBitmapsPromise.SetResult((false, generatedBitmaps));
-                    return;
+                    return (false, generatedBitmaps);
                 }
 
                 if (patternsAddedInIteration < MinimumPatternsAddedInIteration) UpdateImprovementLevel();
             }
-        });
-        return generatedBitmapsPromise.Task;
+            return (true, generatedBitmaps);
+        }, token);
+        return generatedBitmapsTask;
     }
     
     /// <summary>Takes a pattern with the best improvement for a subimage and adds it to the generated image. 
