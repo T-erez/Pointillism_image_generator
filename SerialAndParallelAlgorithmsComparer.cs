@@ -104,7 +104,8 @@ public static class SerialAndParallelAlgorithmComparer
             #region Generate
 
             stopwatch.Restart();
-            var (_, generatedBitmaps) = generator.AddPatterns(_patternsCount.ToIntReference());            
+            var task = generator.AddPatternsAsync(_patternsCount.ToIntReference());
+            var (_, generatedBitmaps) = task.Result;
             stopwatch.Stop();
             timeGenerate += stopwatch.Elapsed;
             _writer.WriteLine(stopwatch.Elapsed);

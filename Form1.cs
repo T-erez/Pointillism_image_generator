@@ -220,7 +220,8 @@ namespace Pointillism_image_generator
         private void backgroundWorkerAddPatterns_DoWork(object sender, DoWorkEventArgs e)
         {
             int imagesToSave = checkBoxProgress.Checked ? _imagesToSave : 0;
-            var (canBeImproved, generatedBitmaps) = _generator!.AddPatterns(_patternsToAdd, imagesToSave, _tokenSource.Token);
+            var taskAddPatterns = _generator!.AddPatternsAsync(_patternsToAdd, imagesToSave, _tokenSource.Token);
+            var (canBeImproved, generatedBitmaps) = taskAddPatterns.Result;
             
             foreach (var generatedBitmap in generatedBitmaps)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Threading;
+using System.Threading.Tasks;
 
 
 namespace Pointillism_image_generator
@@ -161,7 +162,7 @@ namespace Pointillism_image_generator
         /// <returns>bool: True if all the patterns were added or the execution was canceled. False means that the generated
         /// image can not be improved.
         /// IList of generated bitmaps: Contains progress images and final generated image sorted by number of patterns in ascending order.</returns>
-        public abstract (bool, IList<GeneratedBitmap>) AddPatterns(IntReference patternsToAddShared, int progressImages = 0,
+        public abstract Task<(bool, IList<GeneratedBitmap>)> AddPatternsAsync(IntReference patternsToAddShared, int progressImages = 0,
             CancellationToken token = default);
         
         /// <summary>Adds a pattern to bitmap. Properties of the pattern define where to put it.</summary>

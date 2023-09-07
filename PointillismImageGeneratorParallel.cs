@@ -68,61 +68,71 @@ public class PointillismImageGeneratorParallel : PointillismImageGenerator
         });
     }
     
-    public override (bool, IList<GeneratedBitmap>) AddPatterns(IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
+    public override Task<(bool, IList<GeneratedBitmap>)> AddPatternsAsync(IntReference patternsToAddShared, int progressImages = 0, CancellationToken token = default)
     {
         if (Disposed)
             throw new ObjectDisposedException("Can not use disposed generator.");
         int patternsToAdd = patternsToAddShared.Value;
         if (patternsToAdd <= 0 || progressImages < 0) throw new ArgumentOutOfRangeException();
-            
-        List<GeneratedBitmap> generatedBitmaps = new(progressImages + 1);
-        int step = progressImages == 0 ? patternsToAdd : patternsToAdd / progressImages;
-        int nextToSave = step;
-        int patternsAdded = 0;
-        while (patternsToAdd > 0)
+
+        TaskCompletionSource<(bool, IList<GeneratedBitmap>)> generatedBitmapsPromise = new();
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            int patternsAddedInIteration = 0;
-            #region OneIteration
-    
-            foreach (var group in _subimages.Groups)
+            List<GeneratedBitmap> generatedBitmaps = new(progressImages + 1);
+            int step = progressImages == 0 ? patternsToAdd : patternsToAdd / progressImages;
+            int nextToSave = step;
+            int patternsAdded = 0;
+            while (patternsToAdd > 0)
             {
-                var save = nextToSave;
-                Parallel.ForEach(group, (subimage, state) =>
+                int patternsAddedInIteration = 0;
+
+                #region OneIteration
+
+                foreach (var group in _subimages.Groups)
                 {
-                    if (AddBestPatternToSubimage(subimage))
+                    var save = nextToSave;
+                    Parallel.ForEach(group, (subimage, state) =>
                     {
-                        lock (patternsToAddShared)
+                        if (AddBestPatternToSubimage(subimage))
                         {
-                            --patternsToAdd; 
-                            patternsToAddShared.Value = patternsToAdd;
-                            ++patternsAddedInIteration;
-                            ++patternsAdded;
-                            if (patternsToAdd <= 0 || patternsAdded >= save) state.Break();
+                            lock (patternsToAddShared)
+                            {
+                                --patternsToAdd;
+                                patternsToAddShared.Value = patternsToAdd;
+                                ++patternsAddedInIteration;
+                                ++patternsAdded;
+                                if (patternsToAdd <= 0 || patternsAdded >= save) state.Break();
+                            }
                         }
+
+                        if (!token.IsCancellationRequested) return;
+                        state.Break();
+                        nextToSave = patternsAdded;
+                    });
+                    if (patternsAdded >= nextToSave)
+                    {
+                        generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
+                        nextToSave += step;
                     }
-                    if (!token.IsCancellationRequested) return;
-                    state.Break();
-                    nextToSave = patternsAdded;
-                });
-                if (patternsAdded >= nextToSave)
+
+                    if (!token.IsCancellationRequested && patternsToAdd > 0) continue;
+                    generatedBitmapsPromise.SetResult((true, generatedBitmaps));
+                    return;
+                }
+
+                #endregion
+
+                if (_improvementLevel == 0 && patternsAddedInIteration == 0)
                 {
                     generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
-                    nextToSave += step;
+                    generatedBitmapsPromise.SetResult((false, generatedBitmaps));
+                    return;
                 }
-                if (token.IsCancellationRequested || patternsToAdd <= 0) return (true, generatedBitmaps);
-            }
-    
-            #endregion
 
-            if (_improvementLevel == 0 && patternsAddedInIteration == 0)
-            {
-                generatedBitmaps.Add(new GeneratedBitmap(GetOutputImage(), NumberOfPatterns));
-                return (false, generatedBitmaps);
+                if (patternsAddedInIteration < MinimumPatternsAddedInIteration) UpdateImprovementLevel();
             }
-            
-            if (patternsAddedInIteration < MinimumPatternsAddedInIteration) UpdateImprovementLevel();
-        }
-        return (true, generatedBitmaps);
+        });
+        return generatedBitmapsPromise.Task;
     }
     
     /// <summary>Takes a pattern with the best improvement for a subimage and adds it to the generated image. 
