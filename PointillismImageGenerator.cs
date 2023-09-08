@@ -46,7 +46,7 @@ namespace Pointillism_image_generator
         /// <param name="originalImage">original (input) image</param>
         /// <param name="patternSize">size of a pattern</param>
         /// <param name="backgroundColor">background color of the generated image</param>
-        /// <exception cref="ArgumentOutOfRangeException">Exception is thrown if either pattern size or thread count is a non-positive number.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Exception is thrown if pattern size is a non-positive number.</exception>
         /// <exception cref="ArgumentException">Exception is thrown if original image is not in 24bpp or 32bpp pixel format.</exception>
         protected PointillismImageGenerator(Image originalImage, int patternSize, Color backgroundColor)
         {
